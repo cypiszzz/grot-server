@@ -125,10 +125,10 @@ class GamePlayerHandler(BaseHandler):
         self.set_etag_header()
 
         if self.check_etag_header() and player.is_active():
-            if game.started and not player.ready.done():
-                yield player.ready
+            if game.started and not player.ready.is_set():
+                yield player.ready.wait()
             else:
-                yield game.next_round
+                yield game.next_round.wait()
 
             self.clear()
             self.write(player.get_state())
@@ -149,7 +149,7 @@ class GameBoardHandler(BaseHandler):
             player = game.add_player(self.current_user)
 
         if not game.started:
-            yield game.next_round
+            yield game.next_round.wait()
 
         self.write(player.get_state())
 
@@ -177,8 +177,8 @@ class GameBoardHandler(BaseHandler):
         ):
             raise tornado.web.HTTPError(httplib.BAD_REQUEST)
 
-        if player.ready.done():
-            yield game.next_round
+        if player.ready.is_set():
+            yield game.next_round.wait()
 
         try:
             player.start_move(x, y)

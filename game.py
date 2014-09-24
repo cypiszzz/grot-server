@@ -1,7 +1,7 @@
 import copy
 
-import tornado.concurrent
 import tornado.ioloop
+import toro
 
 import grotlogic.board
 import grotlogic.game
@@ -17,19 +17,19 @@ class Game(object):
             super(Game.Player, self).__init__(board)
 
             self.user = user
-            self.ready = tornado.concurrent.Future()  # TODO toro.condition
+            self.ready = toro.Event()
 
         def start_move(self, x, y):
             try:
                 super(Game.Player, self).start_move(x, y)
             finally:
-                self.ready.set_result((x, y))
+                self.ready.set()
 
     def __init__(self, board):
         self.board = board
         self.round = 0
 
-        self.next_round = tornado.concurrent.Future()  # TODO toro.condition
+        self.next_round = toro.Condition()
 
         self._players = {}
         self._future_round = None
@@ -94,26 +94,24 @@ class Game(object):
 
         for _, player in self._players.iteritems():
             tornado.ioloop.IOLoop.instance().add_future(
-                player.ready, self._player_ready
+                player.ready.wait(), self._player_ready
             )
 
         self._future_round = tornado.ioloop.IOLoop.instance().call_later(
             self.TIMEOUT, self._end_round
         )
 
-        self.next_round.set_result(self.round)
-        self.next_round = tornado.concurrent.Future()
+        self.next_round.notify_all()
 
     def _end_round(self):
         for _, player in self._players.iteritems():
-            if not player.ready.done():
-                player.ready.set_result(None)
-
+            if not player.ready.is_set():
                 if player.is_active():
                     player.skip_move()
 
-            player.ready = tornado.concurrent.Future()
+                player.ready.set_exception(toro.Timeout)
 
+            player.ready.clear()
 
         if any(self.players_active):
             self._new_round()
@@ -121,7 +119,7 @@ class Game(object):
             self._future_round = None
 
     def _player_ready(self, future):
-        if not future.result():
+        if future.exception():
             return
 
         if any(self.players_unready):
