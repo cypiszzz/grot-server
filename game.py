@@ -1,5 +1,4 @@
 import copy
-import itertools
 
 import tornado.concurrent
 import tornado.ioloop
@@ -65,6 +64,22 @@ class Game(object):
 
         return players
 
+    @property
+    def players_active(self):
+        return (
+            player
+            for _, player in self._players.iteritems()
+            if player.is_active()
+        )
+
+    @property
+    def players_unready(self):
+        return (
+            player
+            for player in self.players_active
+            if not player.ready.is_set()
+        )
+
     def add_player(self, user):
         player = Game.Player(user, copy.copy(self.board))
         self._players[user] = player
@@ -99,12 +114,8 @@ class Game(object):
 
             player.ready = tornado.concurrent.Future()
 
-        active_players = itertools.imap(
-            lambda item: item[1].is_active(),
-            self._players.iteritems(),
-        )
 
-        if any(active_players):
+        if any(self.players_active):
             self._new_round()
         else:
             self._future_round = None
@@ -113,9 +124,8 @@ class Game(object):
         if not future.result():
             return
 
-        for _, player in self._players.iteritems():
-            if player.is_active() and not player.ready.done():
-                return
+        if any(self.players_unready):
+            return
 
         if self._future_round:
             tornado.ioloop.IOLoop.instance().remove_timeout(self._future_round)
