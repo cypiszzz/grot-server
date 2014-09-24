@@ -1,0 +1,11 @@
+{% extends '__base.html' %}
+
+{% block content %}
+    <h2>Games</h2>
+
+    <ul>
+    {% for i, game in games %}
+        <li><a href="/games/{{ i }}">{{ i }}</a></li>
+    {% end %}
+    </ul>
+{% end %}

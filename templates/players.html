@@ -1,0 +1,31 @@
+{% extends '__base.html' %}
+
+{% block head_js %}
+<script type="text/javascript" src="http://underscorejs.org/underscore-min.js"></script>
+<script type="text/javascript" src="http://backbonejs.org/backbone-min.js"></script>
+<script type="text/javascript" src="/static/js/game.js"></script>
+{% end %}
+
+{% block content %}
+<h2>Players</h2>
+
+<script>
+    var game = new Game({
+        id: 0
+    });
+
+    game.players.reset([
+        {% for player in game.players %}
+        new Player({
+            id: '{{ player.user }}'
+        }),
+        {% end %}
+    ]);
+    game.players.each(function(player) {
+        var board = new PlayerBoard({
+            model: player,
+            el: $('<div>').appendTo('.main'),
+        });
+    });
+</script>
+{% end %}

@@ -1,0 +1,25 @@
+<html>
+<head>
+    <title>Grot</title>
+
+    <link rel="stylesheet" type="text/css" href="/static/css/main.css"></link>
+
+    <script type="text/javascript" src="/static/js/jquery.min.js"></script>
+    {% block head_js %}
+    {% end %}
+</head>
+
+<body>
+    <div class="top">
+        GROT
+    </div>
+    <div class="stx-logo"></div>
+    <div class="main">
+        <div class="hero-left"></div>
+        <div class="hero-right"></div>
+        
+        {% block content %}
+        {% end %}
+    </div>
+</body>
+</html>
