@@ -8,6 +8,8 @@ if __name__ == '__main__':
     user = sys.argv[1]
     rand = random.Random(1)
 
+    time.sleep(random.random())
+
     client = http.client.HTTPConnection('localhost', 8080)
     client.connect()
 
@@ -17,7 +19,7 @@ if __name__ == '__main__':
     while response.status == 200:
         data = json.loads(response.read().decode())
 
-        time.sleep(random.randint(0, 5))
+        time.sleep(random.random())
 
         client.request(
             'POST', '/games/0/board?user={}'.format(user),
