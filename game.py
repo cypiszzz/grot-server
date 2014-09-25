@@ -36,6 +36,7 @@ class Game(object):
         self.round = 0
 
         self.next_round = toro.Condition()
+        self.state_changed = toro.Condition()
 
         self._players = {}
         self._future_round = None
@@ -90,6 +91,8 @@ class Game(object):
         player = Game.Player(user, copy.copy(self.board))
         self._players[user] = player
 
+        self.state_changed.notify_all()
+
         return player
 
     def start(self):
@@ -116,6 +119,8 @@ class Game(object):
             player.skip_move()
 
     def _player_ready(self, future):
+        self.state_changed.notify_all()
+
         if any(self.players_unready):
             return
 
