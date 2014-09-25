@@ -68,7 +68,7 @@ class Game(object):
     def players_active(self):
         return (
             player
-            for _, player in self._players.iteritems()
+            for player in self._players.values()
             if player.is_active()
         )
 
@@ -92,7 +92,7 @@ class Game(object):
     def _new_round(self):
         self.round += 1
 
-        for _, player in self._players.iteritems():
+        for player in self._players.values():
             tornado.ioloop.IOLoop.instance().add_future(
                 player.ready.wait(), self._player_ready
             )
@@ -104,7 +104,7 @@ class Game(object):
         self.next_round.notify_all()
 
     def _end_round(self):
-        for _, player in self._players.iteritems():
+        for player in self._players.values():
             if not player.ready.is_set():
                 if player.is_active():
                     player.skip_move()

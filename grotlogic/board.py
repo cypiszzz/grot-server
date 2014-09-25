@@ -1,6 +1,6 @@
 import random
 
-from field import Field
+from .field import Field
 
 
 class Board(object):
@@ -11,8 +11,8 @@ class Board(object):
         self.random = random.Random(seed)
 
         self.fields = [
-            [Field(x, y, self.random) for x in xrange(size)]
-            for y in xrange(size)
+            [Field(x, y, self.random) for x in range(size)]
+            for y in range(size)
         ]
 
     def __copy__(self):
