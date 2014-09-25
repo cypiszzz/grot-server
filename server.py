@@ -104,12 +104,37 @@ class GameHandler(BaseHandler):
 
 
 class GamePlayersHandler(BaseHandler):
+    @tornado.gen.coroutine
     @game
     def get(self, game):
         if 'html' in self.request.headers.get('Accept', 'html'):
-            return self.render('templates/players.html', **{
+            self.render('templates/players.html', **{
                 'game': game
             })
+
+            raise tornado.gen.Return()
+
+        while True:
+            self.clear()
+            self.write({
+                'game': {
+                    'started': game.started,
+                    'ended': game.ended,
+                },
+                'players': [
+                    {
+                        'id': player.user,
+                        'score': player.score,
+                        'moves': player.moves,
+                    }
+                    for player in game.players
+                ]
+            })
+
+            if self.check_etag_header() and not game.ended:
+                yield game.state_changed.wait()
+            else:
+                break
 
 
 class GamePlayerHandler(BaseHandler):

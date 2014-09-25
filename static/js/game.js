@@ -27,6 +27,10 @@ var Players = Backbone.Collection.extend({
 		this.game = options['game'];
 
 		this.listenTo(this, 'reset change', this.sort);
+	},
+
+	parse: function(response, options) {
+		return response.players;
 	}
 });
 
@@ -56,9 +60,7 @@ var ScoreBoard = Backbone.View.extend({
 	initialize: function() {
 		this.listenTo(this.model.players, 'sort', this.render);
 		this.listenTo(this.model.players, 'sync', function(collection, response, options) {
-			//TODO if is_active
-			console.log(collection);
-			if (true) {
+			if (response.game.ended === false) {
 				collection.fetch();
 			}
 		});
