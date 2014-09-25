@@ -25,6 +25,12 @@ class Game(object):
             finally:
                 self.ready.set()
 
+        def skip_move(self):
+            try:
+                super(Game.Player, self).skip_move()
+            finally:
+                self.ready.set()
+
     def __init__(self, board):
         self.board = board
         self.round = 0
@@ -92,7 +98,9 @@ class Game(object):
     def _new_round(self):
         self.round += 1
 
-        for player in self._players.values():
+        for player in self.players_active:
+            player.ready.clear()
+
             tornado.ioloop.IOLoop.instance().add_future(
                 player.ready.wait(), self._player_ready
             )
@@ -104,28 +112,17 @@ class Game(object):
         self.next_round.notify_all()
 
     def _end_round(self):
-        for player in self._players.values():
-            if not player.ready.is_set():
-                if player.is_active():
-                    player.skip_move()
-
-                player.ready.set_exception(toro.Timeout)
-
-            player.ready.clear()
-
-        if any(self.players_active):
-            self._new_round()
-        else:
-            self._future_round = None
+        for player in self.players_unready:
+            player.skip_move()
 
     def _player_ready(self, future):
-        if future.exception():
-            return
-
         if any(self.players_unready):
             return
 
         if self._future_round:
             tornado.ioloop.IOLoop.instance().remove_timeout(self._future_round)
 
-        self._end_round()
+            self._future_round = None
+
+        if any(self.players_active):
+            self._new_round()
