@@ -130,6 +130,7 @@ class GamePlayersHandler(BaseHandler):
                     for player in game.players
                 ]
             })
+            self.set_etag_header()
 
             if self.check_etag_header() and not game.ended:
                 yield game.state_changed.wait()
