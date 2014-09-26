@@ -203,6 +203,9 @@ class GameBoardHandler(BaseHandler):
         ):
             raise tornado.web.HTTPError(http.client.BAD_REQUEST)
 
+        if not 0 <= x < player.board.size or not 0 <= y < player.board.size:
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+
         if player.ready.is_set():
             yield game.next_round.wait()
 
