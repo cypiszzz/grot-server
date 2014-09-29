@@ -1,6 +1,6 @@
 
 var Game = Backbone.Model.extend({
-	urlRoot: '/games',
+	urlRoot: '/games/',
 
 	initialize: function(attributes, options) {
 		this.players = new Players([], {
@@ -16,7 +16,7 @@ var Players = Backbone.Collection.extend({
 	model: Player,
 
 	url: function() {
-		return this.game.url() + '/players';
+		return this.game.url() + '/players/';
 	},
 
 	comparator: function(player) {

@@ -273,7 +273,7 @@ application = tornado.web.Application([
     (r'/games', GamesHandler),
     (r'/games/(\d+)', GameHandler),
     (r'/games/(\d+)/board', GameBoardHandler),
-    (r'/games/(\d+)/players', GamePlayersHandler),
+    (r'/games/(\d+)/players/?', GamePlayersHandler),
     (r'/games/(\d+)/players/(\w+)', GamePlayerHandler),
 ], debug=True)
 
