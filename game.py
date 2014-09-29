@@ -1,8 +1,7 @@
 import copy
-import itertools
 
-import tornado.concurrent
 import tornado.ioloop
+import toro
 
 import grotlogic.board
 import grotlogic.game
@@ -18,19 +17,26 @@ class Game(object):
             super(Game.Player, self).__init__(board)
 
             self.user = user
-            self.ready = tornado.concurrent.Future()  # TODO toro.condition
+            self.ready = toro.Event()
 
         def start_move(self, x, y):
             try:
                 super(Game.Player, self).start_move(x, y)
             finally:
-                self.ready.set_result((x, y))
+                self.ready.set()
+
+        def skip_move(self):
+            try:
+                super(Game.Player, self).skip_move()
+            finally:
+                self.ready.set()
 
     def __init__(self, board):
         self.board = board
         self.round = 0
 
-        self.next_round = tornado.concurrent.Future()  # TODO toro.condition
+        self.next_round = toro.Condition()
+        self.state_changed = toro.Condition()
 
         self._players = {}
         self._future_round = None
@@ -65,9 +71,27 @@ class Game(object):
 
         return players
 
+    @property
+    def players_active(self):
+        return (
+            player
+            for player in self._players.values()
+            if player.is_active()
+        )
+
+    @property
+    def players_unready(self):
+        return (
+            player
+            for player in self.players_active
+            if not player.ready.is_set()
+        )
+
     def add_player(self, user):
         player = Game.Player(user, copy.copy(self.board))
         self._players[user] = player
+
+        self.state_changed.notify_all()
 
         return player
 
@@ -77,47 +101,33 @@ class Game(object):
     def _new_round(self):
         self.round += 1
 
-        for _, player in self._players.iteritems():
+        for player in self.players_active:
+            player.ready.clear()
+
             tornado.ioloop.IOLoop.instance().add_future(
-                player.ready, self._player_ready
+                player.ready.wait(), self._player_ready
             )
 
         self._future_round = tornado.ioloop.IOLoop.instance().call_later(
             self.TIMEOUT, self._end_round
         )
 
-        self.next_round.set_result(self.round)
-        self.next_round = tornado.concurrent.Future()
+        self.next_round.notify_all()
 
     def _end_round(self):
-        for _, player in self._players.iteritems():
-            if not player.ready.done():
-                player.ready.set_result(None)
-
-                if player.is_active():
-                    player.skip_move()
-
-            player.ready = tornado.concurrent.Future()
-
-        active_players = itertools.imap(
-            lambda item: item[1].is_active(),
-            self._players.iteritems(),
-        )
-
-        if any(active_players):
-            self._new_round()
-        else:
-            self._future_round = None
+        for player in self.players_unready:
+            player.skip_move()
 
     def _player_ready(self, future):
-        if not future.result():
-            return
+        self.state_changed.notify_all()
 
-        for _, player in self._players.iteritems():
-            if player.is_active() and not player.ready.done():
-                return
+        if any(self.players_unready):
+            return
 
         if self._future_round:
             tornado.ioloop.IOLoop.instance().remove_timeout(self._future_round)
 
-        self._end_round()
+            self._future_round = None
+
+        if any(self.players_active):
+            self._new_round()

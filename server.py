@@ -1,5 +1,5 @@
 import functools
-import httplib
+import http.client
 import json
 import logging
 
@@ -19,7 +19,7 @@ def user(handler):
     @functools.wraps(handler)
     def wrapper(self, *args, **kwargs):
         if self.current_user is None:
-            raise tornado.web.HTTPError(httplib.UNAUTHORIZED)
+            raise tornado.web.HTTPError(http.client.UNAUTHORIZED)
 
         return handler(self, *args, **kwargs)
 
@@ -31,7 +31,7 @@ def admin(handler):
     @user
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            raise tornado.web.HTTPError(httplib.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
         return handler(self, *args, **kwargs)
 
@@ -44,9 +44,9 @@ def game(handler):
         try:
             game = games[int(game)]
         except ValueError:
-            raise tornado.web.HTTPError(httplib.BAD_REQUEST)
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
         except LookupError:
-            raise tornado.web.HTTPError(httplib.NOT_FOUND)
+            raise tornado.web.HTTPError(http.client.NOT_FOUND)
         else:
             return handler(self, game, *args, **kwargs)
 
@@ -104,12 +104,38 @@ class GameHandler(BaseHandler):
 
 
 class GamePlayersHandler(BaseHandler):
+    @tornado.gen.coroutine
     @game
     def get(self, game):
         if 'html' in self.request.headers.get('Accept', 'html'):
-            return self.render('templates/players.html', **{
+            self.render('templates/players.html', **{
                 'game': game
             })
+
+            raise tornado.gen.Return()
+
+        while True:
+            self.clear()
+            self.write({
+                'game': {
+                    'started': game.started,
+                    'ended': game.ended,
+                },
+                'players': [
+                    {
+                        'id': player.user,
+                        'score': player.score,
+                        'moves': player.moves,
+                    }
+                    for player in game.players
+                ]
+            })
+            self.set_etag_header()
+
+            if self.check_etag_header() and not game.ended:
+                yield game.state_changed.wait()
+            else:
+                break
 
 
 class GamePlayerHandler(BaseHandler):
@@ -119,16 +145,16 @@ class GamePlayerHandler(BaseHandler):
         try:
             player = game[player]
         except LookupError:
-            raise tornado.web.HTTPError(httplib.NOT_FOUND)
+            raise tornado.web.HTTPError(http.client.NOT_FOUND)
 
         self.write(player.get_state(game.started))
         self.set_etag_header()
 
         if self.check_etag_header() and player.is_active():
-            if game.started and not player.ready.done():
-                yield player.ready
+            if game.started and not player.ready.is_set():
+                yield player.ready.wait()
             else:
-                yield game.next_round
+                yield game.next_round.wait()
 
             self.clear()
             self.write(player.get_state())
@@ -144,12 +170,12 @@ class GameBoardHandler(BaseHandler):
             player = game[self.current_user]
         except LookupError:
             if game.started:
-                raise tornado.web.HTTPError(httplib.FORBIDDEN)
+                raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
             player = game.add_player(self.current_user)
 
         if not game.started:
-            yield game.next_round
+            yield game.next_round.wait()
 
         self.write(player.get_state())
 
@@ -160,13 +186,13 @@ class GameBoardHandler(BaseHandler):
         try:
             player = game[self.current_user]
         except LookupError:
-            raise tornado.web.HTTPError(httplib.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
         if not game.started or game.ended or not player.is_active():
-            raise tornado.web.HTTPError(httplib.METHOD_NOT_ALLOWED)
+            raise tornado.web.HTTPError(http.client.METHOD_NOT_ALLOWED)
 
         try:
-            data = json.loads(self.request.body)
+            data = json.loads(self.request.body.decode())
 
             x = int(data['x'])
             y = int(data['y'])
@@ -175,10 +201,13 @@ class GameBoardHandler(BaseHandler):
             TypeError,
             ValueError,
         ):
-            raise tornado.web.HTTPError(httplib.BAD_REQUEST)
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
 
-        if player.ready.done():
-            yield game.next_round
+        if not 0 <= x < player.board.size or not 0 <= y < player.board.size:
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+
+        if player.ready.is_set():
+            yield game.next_round.wait()
 
         try:
             player.start_move(x, y)
