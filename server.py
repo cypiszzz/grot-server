@@ -7,11 +7,15 @@ import tornado.gen
 import tornado.ioloop
 import tornado.web
 
-from game import Game
-
-# TODO mutliple simultaneous games
+from game import (
+    GameDev,
+    Game,
+)
+from grotlogic.board import Board
+# TODO seed
 games = [
-    Game.new(board_size=5)
+    GameDev(Board(5, 1)),
+    Game(Board(5, 1)),
 ]
 
 
@@ -42,7 +46,10 @@ def game(handler):
     @functools.wraps(handler)
     def wrapper(self, game, *args, **kwargs):
         try:
-            game = games[int(game)]
+            #FIXME dirty workaround
+            game_id = int(game)
+            game = games[game_id]
+            game.id = game_id
         except ValueError:
             raise tornado.web.HTTPError(http.client.BAD_REQUEST)
         except LookupError:
