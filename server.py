@@ -196,17 +196,18 @@ class GamePlayerHandler(BaseHandler):
         except LookupError:
             raise tornado.web.HTTPError(http.client.NOT_FOUND)
 
-        self.write(player.get_state(game.started))
-        self.set_etag_header()
-
-        if self.check_etag_header() and player.is_active():
-            if game.started and not player.ready.is_set():
-                yield player.ready.wait()
-            else:
-                yield game.next_round.wait()
-
+        while True:
             self.clear()
-            self.write(player.get_state())
+            self.write(player.get_state(game.started))
+            self.set_etag_header()
+
+            if self.check_etag_header() and player.is_active():
+                if game.started and not player.ready.is_set():
+                    yield player.ready.wait()
+                else:
+                    yield game.next_round.wait()
+            else:
+                break
 
 
 class GameBoardHandler(BaseHandler):
