@@ -19,7 +19,7 @@ if __name__ == '__main__':
     while response.status == 200:
         data = json.loads(response.read().decode())
 
-        time.sleep(random.random())
+        time.sleep(random.random() * 3 + 1)
 
         client.request(
             'POST', '/games/1/board?token={}'.format(token),

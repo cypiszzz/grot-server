@@ -10,26 +10,55 @@ body {
 .top {
     background: url(../img/top.png);
     box-shadow: 0px 0px 30px 0px rgba(50, 50, 50, 0.6);
-    height: 32px;
-
-    margin: 0;
-    padding: 4px;
-
+    height: 65px;
     text-align: center;
-    line-height: 32px;
-    font-size: 22px;
+    line-height: 65px;
+}
+.top h1 {
+    font-size: 45px;
     font-weight: bold;
     color: #fff;
+    margin-left: -100px;
+    position: relative;
+    left: -230px;
+}
+.top .logo {
+    float: left;
+    margin: 14px 100px;
+}
+
+.container .column {
+    float: left;
+    /*outline: 1px solid black;*/
+}
+.container .column.right {
+    width: 30%;
+}
+.container .column.center {
+    width: 50%;
+}
+.container .column.left {
+    width: 20%;
+    text-align: center;
 }
 
 .main {
     position: relative;
     background: url(../img/bg2.png);
     box-shadow: 0px 0px 30px 0px rgba(50, 50, 50, 0.6);
-    margin: 0 auto;
+    margin: 0;
     padding: 16px;
-    width: 800px;
-    min-height: 600px;
+}
+
+.twitter-wrapper {
+    width: 550px;
+    max-width: 90%;
+    margin: auto;
+    text-align: center;
+}
+.twitter-timeline {
+    display: block;
+    margin: 20px auto;
 }
 
 .clear {
@@ -60,6 +89,50 @@ body {
 .inactive {
     opacity: 0.6;
 }
+
+/* .score-board */
+.score-board {
+
+}
+.score-board ul {
+    list-style-type: none;
+    padding-left: 0;
+    position: relative;
+}
+.score-board ul li {
+    clear: both;
+    position: absolute;
+}
+.score-board ul li.head {
+    font-weight: bold;
+}
+.score-board ul li >div {
+    float: left;
+    text-align: center;
+}
+.score-board ul li div.avatar {
+    width: 60px;
+}
+.score-board ul li div.avatar img {
+    width: 50px;
+    height: 45px;
+    margin-top: -19px;
+}
+.score-board ul li div.name {
+    width: 100px;
+    max-width: 100px;
+    overflow: hidden;
+    text-align: left;
+}
+.score-board ul li div.moves {
+    width: 100px;
+}
+.score-board ul li div.score {
+    width: 100px;
+}
+
+/* //.score-board */
+
 
 
 .users {
@@ -109,32 +182,9 @@ body {
     color: red;
 }
 
-.hero-left {
-    background: url('../img/hero-left.png');
-    position: absolute;
-    left: -260px;
-    top: 150px;
-    width: 229px;
-    height: 505px;
-}
-
-.hero-right {
-    background: url('../img/hero-right.png');
-    position: absolute;
-    right: -280px;
-    top: 120px;
-    width: 255px;
-    height: 525px;
-}
-
-.stx-logo {
-    background: url('../img/stx.png');
-    position: absolute;
-    bottom: 32px;
-    left: 0;
-    right: 0;
-    width: 240px;
-    height: 170px;
-    margin-left: auto;
-    margin-right: auto;
+.hero {
+    background: url('../img/grot-hero.png');
+    width: 252px;
+    height: 203px;
+    margin: 100px auto;
 }

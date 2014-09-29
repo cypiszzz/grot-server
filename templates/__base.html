@@ -11,15 +11,25 @@
 
 <body>
     <div class="top">
-        GROT
+        <img class="logo" src="/static/img/grot-logo2.png">
+        <h1>GROT - Score Board</h1>
     </div>
-    <div class="stx-logo"></div>
-    <div class="main">
-        <div class="hero-left"></div>
-        <div class="hero-right"></div>
-        
-        {% block content %}
-        {% end %}
+    <div class="container">
+        <div class="column left">
+            <h3>Place for marketing text</h3>
+            <div class="hero"></div>
+        </div>
+        <div class="column center">
+            <div class="main">
+                {% block content %}{% end %}
+            </div>
+        </div>
+        <div class="column right">
+            <div class="twitter-wrapper">
+                <a class="twitter-timeline" data-dnt="true" href="https://twitter.com/hashtag/life" data-widget-id="514762544527847424">Twitter loading ...</a>
+            </div>
+        </div>
     </div>
+    <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
 </body>
 </html>

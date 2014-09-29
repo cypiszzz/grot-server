@@ -7,7 +7,16 @@
 {% end %}
 
 {% block content %}
-<h2>Score Board</h2>
+<div class="score-board">
+    <ul>
+        <li class="head">
+            <div class="avatar">&nbsp;</div>
+            <div class="name">Player</div>
+            <div class="moves">Moves</div>
+            <div class="score">Score</div>
+        </li>
+    </ul>
+</div>
 
 <script>
     var game = new Game({
@@ -15,7 +24,7 @@
     });
     var scoreboard = new ScoreBoard({
         model: game,
-        el: $('<div>').appendTo('.main'),
+        el: $('.score-board ul'),
     });
 
     game.players.reset([
