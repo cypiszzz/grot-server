@@ -17,7 +17,8 @@
     game.players.reset([
         {% for player in game.players %}
         new Player({
-            id: '{{ player.user }}'
+            id: '{{ player.user.id }}',
+            name: '{{ player.user.name }}',
         }),
         {% end %}
     ]);

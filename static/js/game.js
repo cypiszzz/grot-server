@@ -48,7 +48,7 @@ var ScoreBoard = Backbone.View.extend({
 			'<tbody>' +
 			'<% players.each(function(player) { %>' +
 				'<tr>' +
-					'<td><%- player.id %></td>' +
+					'<td><%- player.get("name") %></td>' +
 					'<td><%- player.get("moves") %></td>' +
 					'<td><%- player.get("score") %></td>' +
 				'</tr>' +

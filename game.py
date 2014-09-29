@@ -41,6 +41,8 @@ class Game(object):
         self._future_round = None
 
     def __getitem__(self, user):
+        user = user if isinstance(user, str) else str(user.id)
+
         return self._players[user]
 
     @property
@@ -84,7 +86,7 @@ class Game(object):
 
     def add_player(self, user):
         player = self.Player(user, copy.copy(self.board))
-        self._players[user] = player
+        self._players[str(user.id)] = player
 
         self.state_changed.notify_all()
 
