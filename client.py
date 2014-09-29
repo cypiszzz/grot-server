@@ -13,7 +13,7 @@ if __name__ == '__main__':
     client = http.client.HTTPConnection('localhost', 8080)
     client.connect()
 
-    client.request('GET', '/games/0/board?token={}'.format(token))
+    client.request('GET', '/games/1/board?token={}'.format(token))
     response = client.getresponse()
 
     while response.status == 200:
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         time.sleep(random.random())
 
         client.request(
-            'POST', '/games/0/board?token={}'.format(token),
+            'POST', '/games/1/board?token={}'.format(token),
             json.dumps({
                 'x': rand.randint(0, 4),
                 'y': rand.randint(0, 4),
