@@ -2,16 +2,27 @@ import functools
 import http.client
 import json
 import logging
+import re
 
+import tornado.escape
 import tornado.gen
 import tornado.ioloop
 import tornado.web
 
-from game import Game
+from game import (
+    GameDev,
+    Game,
+)
+from grotlogic.board import Board
+from user import (
+    User,
+    LocalUser,
+)
 
-# TODO mutliple simultaneous games
+# TODO seed
 games = [
-    Game.new(board_size=5)
+    GameDev(Board(5, 1)),
+    Game(Board(5, 1)),
 ]
 
 
@@ -26,11 +37,10 @@ def user(handler):
     return wrapper
 
 
-# TODO admin login
 def admin(handler):
     @user
     def wrapper(self, *args, **kwargs):
-        if not self.current_user:
+        if not self.current_user.admin:
             raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
         return handler(self, *args, **kwargs)
@@ -42,7 +52,10 @@ def game(handler):
     @functools.wraps(handler)
     def wrapper(self, game, *args, **kwargs):
         try:
-            game = games[int(game)]
+            #FIXME dirty workaround
+            game_id = int(game)
+            game = games[game_id]
+            game.id = game_id
         except ValueError:
             raise tornado.web.HTTPError(http.client.BAD_REQUEST)
         except LookupError:
@@ -55,17 +68,52 @@ def game(handler):
 
 class BaseHandler(tornado.web.RequestHandler):
 
-    # TODO user DB
     def get_current_user(self):
-        try:
-            return self.get_query_argument('user')
-        except tornado.web.MissingArgumentError:
-            return '0'
+        token = self.get_query_argument('token', None)
+        user = User.get(token)
+
+        if not user and self.request.remote_ip == '127.0.0.1':
+            return LocalUser(token or 'LocalUser')
+
+        return user
 
 
 class IndexHandler(BaseHandler):
     def get(self):
         self.redirect('/games')
+
+
+class SignUpHandler(BaseHandler):
+    def get(self):
+        self.render('templates/signup.html')
+
+    def post(self):
+        name = tornado.escape.xhtml_escape(self.get_body_argument('name'))
+        email = tornado.escape.xhtml_escape(self.get_body_argument('email'))
+
+        if not name or not email:
+            return self.render('templates/signup.html', **{
+                'error': 'empty'
+            })
+
+        #TODO robust email validation?
+        if not re.match(r'[^@]+@[^@]+\.[^@]+', email):
+            return self.render('templates/signup.html', **{
+                'error': 'email'
+            })
+
+        if (
+            User.collection.find_one({'name': name}) is not None
+            or User.collection.find_one({'email': email}) is not None
+        ):
+            return self.render('templates/signup.html', **{
+                'error': 'exists'
+            })
+
+        user = User(name, email)
+        user.put()
+
+        self.render('templates/thanks.html')
 
 
 class GamesHandler(BaseHandler):
@@ -123,7 +171,8 @@ class GamePlayersHandler(BaseHandler):
                 },
                 'players': [
                     {
-                        'id': player.user,
+                        'id': str(player.user.id),
+                        'name': player.user.name,
                         'score': player.score,
                         'moves': player.moves,
                     }
@@ -141,23 +190,24 @@ class GamePlayersHandler(BaseHandler):
 class GamePlayerHandler(BaseHandler):
     @tornado.gen.coroutine
     @game
-    def get(self, game, player):
+    def get(self, game, user):
         try:
-            player = game[player]
+            player = game[user]
         except LookupError:
             raise tornado.web.HTTPError(http.client.NOT_FOUND)
 
-        self.write(player.get_state(game.started))
-        self.set_etag_header()
-
-        if self.check_etag_header() and player.is_active():
-            if game.started and not player.ready.is_set():
-                yield player.ready.wait()
-            else:
-                yield game.next_round.wait()
-
+        while True:
             self.clear()
-            self.write(player.get_state())
+            self.write(player.get_state(game.started))
+            self.set_etag_header()
+
+            if self.check_etag_header() and player.is_active():
+                if game.started and not player.ready.is_set():
+                    yield player.ready.wait()
+                else:
+                    yield game.next_round.wait()
+            else:
+                break
 
 
 class GameBoardHandler(BaseHandler):
@@ -220,10 +270,11 @@ class GameBoardHandler(BaseHandler):
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static'}),
     (r'/', IndexHandler),
+    (r'/signup', SignUpHandler),
     (r'/games', GamesHandler),
     (r'/games/(\d+)', GameHandler),
     (r'/games/(\d+)/board', GameBoardHandler),
-    (r'/games/(\d+)/players', GamePlayersHandler),
+    (r'/games/(\d+)/players/?', GamePlayersHandler),
     (r'/games/(\d+)/players/(\w+)', GamePlayerHandler),
 ], debug=True)
 

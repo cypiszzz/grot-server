@@ -4,7 +4,7 @@
 var pr = console.log.bind(console);
 
 var Game = Backbone.Model.extend({
-	urlRoot: '/games',
+	urlRoot: '/games/',
 
 	initialize: function(attributes, options) {
 		this.players = new Players([], {
@@ -20,7 +20,7 @@ var Players = Backbone.Collection.extend({
 	model: Player,
 
 	url: function() {
-		return this.game.url() + '/players';
+		return this.game.url() + '/players/';
 	},
 
 	comparator: function(player) {
@@ -41,8 +41,8 @@ var Players = Backbone.Collection.extend({
 var ScoreBoard = Backbone.View.extend({
 	template: _.template(
 		'<li id="player_<%- player.id %>">' +
-			'<div class="avatar"><img src="http://robohash.org/<%- player.id %>"></img></div>' +
-			'<div class="name"><%- player.id %></div>' +
+			'<div class="avatar"><img src="http://robohash.org/<%- player.name %>"></img></div>' +
+			'<div class="name"><%- player.name %></div>' +
 			'<div class="moves"><%- player.moves %></div>' +
 			'<div class="score"><%- player.score %></div>' +
 		'</li>'

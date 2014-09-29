@@ -11,13 +11,14 @@
 
 <script>
     var game = new Game({
-        id: 0
+        id: {{ game.id }}
     });
 
     game.players.reset([
         {% for player in game.players %}
         new Player({
-            id: '{{ player.user }}'
+            id: '{{ player.user.id }}',
+            name: '{{ player.user.name }}',
         }),
         {% end %}
     ]);

@@ -5,7 +5,7 @@ import sys
 import time
 
 if __name__ == '__main__':
-    user = sys.argv[1]
+    token = sys.argv[1]
     rand = random.Random(1)
 
     time.sleep(random.random())
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     client = http.client.HTTPConnection('localhost', 8080)
     client.connect()
 
-    client.request('GET', '/games/0/board?user={}'.format(user))
+    client.request('GET', '/games/1/board?token={}'.format(token))
     response = client.getresponse()
 
     while response.status == 200:
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         time.sleep(random.random() * 3 + 1)
 
         client.request(
-            'POST', '/games/0/board?user={}'.format(user),
+            'POST', '/games/1/board?token={}'.format(token),
             json.dumps({
                 'x': rand.randint(0, 4),
                 'y': rand.randint(0, 4),

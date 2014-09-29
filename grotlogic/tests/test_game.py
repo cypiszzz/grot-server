@@ -1,13 +1,14 @@
 from unittest import TestCase
 
 from ..game import Game
+from ..board import Board
 from .utils import assert_fields_directions, set_fields_directions
 
 
 class GameTestCase(TestCase):
 
     def setUp(self):
-        self.game = Game(5, 0)
+        self.game = Game(Board(5, 0))
 
     def test_new_game_is_clean(self):
         self.assertEqual(self.game.moves, 5)

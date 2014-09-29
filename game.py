@@ -3,7 +3,6 @@ import copy
 import tornado.ioloop
 import toro
 
-import grotlogic.board
 import grotlogic.game
 
 
@@ -42,11 +41,9 @@ class Game(object):
         self._future_round = None
 
     def __getitem__(self, user):
-        return self._players[user]
+        user = user if isinstance(user, str) else str(user.id)
 
-    @classmethod
-    def new(cls, board_size=5):
-        return cls(grotlogic.board.Board(board_size, 1))  # TODO testing seed
+        return self._players[user]
 
     @property
     def started(self):
@@ -88,8 +85,8 @@ class Game(object):
         )
 
     def add_player(self, user):
-        player = Game.Player(user, copy.copy(self.board))
-        self._players[user] = player
+        player = self.Player(user, copy.copy(self.board))
+        self._players[str(user.id)] = player
 
         self.state_changed.notify_all()
 
@@ -131,3 +128,43 @@ class Game(object):
 
         if any(self.players_active):
             self._new_round()
+
+
+class GameDev(Game):
+
+    class Player(Game.Player):
+        def start_move(self, x, y):
+            try:
+                self.moves = 1
+                self.score = 0
+
+                super(GameDev.Player, self).start_move(x, y)
+            finally:
+                self.ready.clear()
+
+        def skip_move(self):
+            pass
+
+        def is_active(self):
+            return True
+
+    @property
+    def started(self):
+        return True
+
+    @property
+    def ended(self):
+        return False
+
+    @property
+    def players(self):
+        return []
+
+    def __getitem__(self, user):
+        try:
+            return super(GameDev, self).__getitem__(user)
+        except LookupError:
+            return self.add_player(user)
+
+    def start(self):
+        pass
