@@ -1,3 +1,4 @@
+'use strict';
 
 var Game = Backbone.Model.extend({
 	urlRoot: '/games',
@@ -35,6 +36,7 @@ var ScoreBoard = Backbone.View.extend({
 		'<table>' +
 			'<thead>' +
 				'<tr>' +
+					'<th></th>' +
 					'<th>Player</th>' +
 					'<th>Moves</th>' +
 					'<th>Score</th>' +
@@ -42,8 +44,9 @@ var ScoreBoard = Backbone.View.extend({
 			'</thead>' +
 
 			'<tbody>' +
-			'<% players.each(function(player) { %>' +
+			'<% players.each(function(player, position) { %>' +
 				'<tr>' +
+					'<td><%- (position + 1) %></td>' +
 					'<td><%- player.id %></td>' +
 					'<td><%- player.get("moves") %></td>' +
 					'<td><%- player.get("score") %></td>' +
@@ -97,7 +100,7 @@ var PlayerBoard = Backbone.View.extend({
 		this.model.fetch();
 	},
 
-	render: function() {		
+	render: function() {
 		var ARROWS = {
 			'up': '^',
 			'down': 'v',
