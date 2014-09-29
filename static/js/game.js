@@ -96,7 +96,7 @@ var ScoreBoard = Backbone.View.extend({
 			};
 
 			if(i + 1 > this.playersInColumn) {
-				animate.left = 600;
+				animate.left = '50%';
 				animate.top -= (this.playersInColumn + 1) * this.playerEntryHeight;
 			}
 			$playerEntry.stop(true).animate(animate, 300);
