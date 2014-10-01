@@ -150,7 +150,7 @@ class GameHandler(BaseHandler):
     @game
     def delete(self, game):
         if game.ended:
-            games[0] = Game.new(board_size=5)
+            games[game.id] = Game.new(board_size=5)
 
 
 class GamePlayersHandler(BaseHandler):
