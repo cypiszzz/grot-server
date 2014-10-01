@@ -5,3 +5,7 @@ SMTP_EMAIL = 'gorottest@gmail.com'
 SMTP_PASSWORD = 'lolol123'
 
 db = pymongo.MongoClient().grot
+
+db['users'].ensure_index([
+    ('token', pymongo.HASHED),
+])
