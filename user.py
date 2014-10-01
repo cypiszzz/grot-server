@@ -3,23 +3,18 @@ import uuid
 import smtplib
 import multiprocessing.pool
 
-import pymongo
+import settings
 
-db = pymongo.MongoClient()
 
-SMTP_HOST = 'smtp.gmail.com:587'
-SMTP_EMAIL = 'gorottest@gmail.com'
-SMTP_PASSWORD = 'lolol123'
-
-smtp = smtplib.SMTP(SMTP_HOST)
+smtp = smtplib.SMTP(settings.SMTP_HOST)
 smtp.starttls()
-smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+smtp.login(settings.SMTP_EMAIL, settings.SMTP_PASSWORD)
 
 smtp_thread = multiprocessing.pool.ThreadPool(1)
 
 
 class User(object):
-    collection = db.grot['users']
+    collection = settings.db['users']
 
     def __init__(self, name, email, **kwargs):
         self.id = kwargs.get('_id')
@@ -61,7 +56,7 @@ class User(object):
     def send(self, subject, body):
         def task(user, subject, body):
             message = email.mime.text.MIMEText(body)
-            message['From'] = SMTP_EMAIL
+            message['From'] = settings.SMTP_EMAIL
             message['To'] = user.email
             message['Subject'] = subject
 
@@ -77,7 +72,7 @@ class LocalUser(User):
     def __init__(self, name, *arg, **kwargs):
         super(LocalUser, self).__init__(
             name,
-            SMTP_EMAIL,
+            settings.SMTP_EMAIL,
             _id=name,
             admin=True,
             token=name,
