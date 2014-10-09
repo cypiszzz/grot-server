@@ -10,8 +10,9 @@ import tornado.ioloop
 import tornado.web
 
 from game import (
-    GameDev,
     Game,
+    GameDev,
+    GameDuel,
 )
 from grotlogic.board import Board
 from user import (
@@ -23,6 +24,7 @@ from user import (
 games = [
     GameDev(Board(5, 1)),
     Game(Board(5, 1)),
+    GameDuel(Board(5, 1)),
 ]
 
 
@@ -148,7 +150,7 @@ class GameHandler(BaseHandler):
     @game
     def delete(self, game):
         if game.ended:
-            games[0] = Game.new(board_size=5)
+            games[game.id] = Game.new(board_size=5)
 
 
 class GamePlayersHandler(BaseHandler):

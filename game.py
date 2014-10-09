@@ -1,9 +1,12 @@
 import copy
+import datetime
+import subprocess
 
 import tornado.ioloop
 import toro
 
 import grotlogic.game
+import settings
 
 
 class Game(object):
@@ -168,3 +171,37 @@ class GameDev(Game):
 
     def start(self):
         pass
+
+
+class GameDuel(Game):
+
+    def add_player(self, user):
+        player = super(GameDuel, self).add_player(user)
+
+        if len(self.players) == 2:
+            self.start()
+        else:
+            #TODO bot
+            subprocess.Popen(
+                ['python3', 'client.py', 'STXNext', str(self.id)]
+            )
+
+        return player
+
+    def _player_ready(self, future):
+        super(GameDuel, self)._player_ready(future)
+
+        if not any(self.players_active):
+            top = max(self.players, key=lambda player: player.score)
+
+            settings.db['duels'].save({
+                'datetime': datetime.datetime.utcnow(),
+                'players': [
+                    {
+                        'id': player.user.id,
+                        'score': player.score,
+                        'rating': player.score / top.score
+                    }
+                    for player in self.players
+                ],
+            })
