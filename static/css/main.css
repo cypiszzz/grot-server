@@ -24,7 +24,7 @@ body {
 }
 .top .logo {
     float: left;
-    margin: 14px 100px;
+    margin: 14px 100px 0;
 }
 
 .container .column {
@@ -119,6 +119,10 @@ body {
     width: 50px;
     height: 45px;
     margin-top: -11px;
+}
+.score-board ul li div.position {
+    font-weight: bold;
+    margin-right: 10px;
 }
 .score-board ul li div.name {
     width: 100px;
