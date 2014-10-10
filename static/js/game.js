@@ -28,7 +28,7 @@ var Players = Backbone.Collection.extend({
 	},
 
 	initialize: function(models, options) {
-		this.game = options['game'];
+		this.game = options.game;
 
 		this.listenTo(this, 'reset change', this.sort);
 	},
@@ -42,6 +42,7 @@ var ScoreBoard = Backbone.View.extend({
 	template: _.template(
 		'<li id="player_<%- player.id %>">' +
 			'<div class="avatar"><img src="http://robohash.org/<%- player.name %>"></img></div>' +
+			'<div class="position">-</div>' +
 			'<div class="name"><%- player.name %></div>' +
 			'<div class="moves"><%- player.moves %></div>' +
 			'<div class="score"><%- player.score %></div>' +
@@ -56,7 +57,7 @@ var ScoreBoard = Backbone.View.extend({
 		var $main = $('.main');
 
 		this.listenTo(this.model.players, 'sort', this.render);
-		this.listenTo(this.model.players, 'sync', function(collection, response, options) {
+		this.listenTo(this.model.players, 'sync', function(collection, response) {
 			if (response.game.ended === false) {
 				collection.fetch();
 			}
@@ -66,7 +67,6 @@ var ScoreBoard = Backbone.View.extend({
 
 		this.playerEntryHeight = 50;
 		this.columnWidth = 400;
-		this.playersInColumn;
 		$(window).on('resize', function() {
 			boardHeight = $('body').height() - topHeight - 10;
 			_this.playersInColumn = Math.floor((boardHeight - _this.playerEntryHeight - 20) / _this.playerEntryHeight);
@@ -76,10 +76,13 @@ var ScoreBoard = Backbone.View.extend({
 	},
 
 	render: function() {
-		for(var i = 0, player; i < this.model.players.models.length; i++) {
 
-			player = this.model.players.models[i].attributes;
-			var $playerEntry = this.$el.find('#player_'+player.id);
+		for(var i = 0; i < this.model.players.models.length; i++) {
+
+			var player = this.model.players.models[i].attributes;
+			player.id = player.id.replace(' ', '_');
+			var $playerEntry = this.$el.find('#player_' + player.id);
+
 			if(!$playerEntry.get(0)) {
 				$playerEntry = $(this.template({
 					player: player
@@ -89,6 +92,7 @@ var ScoreBoard = Backbone.View.extend({
 
 			$playerEntry.find('.moves').html(player.moves);
 			$playerEntry.find('.score').html(player.score);
+			$playerEntry.find('.position').html(i + 1);
 
 			var animate = {
 				top: i * this.playerEntryHeight + this.playerEntryHeight + 20,
@@ -96,8 +100,8 @@ var ScoreBoard = Backbone.View.extend({
 			};
 
 			if(i + 1 > this.playersInColumn) {
-				animate.left = 600;
-				animate.top -= (this.playersInColumn + 1) * this.playerEntryHeight;
+				animate.left = '50%';
+				animate.top -= (this.playersInColumn) * this.playerEntryHeight;
 			}
 			$playerEntry.stop(true).animate(animate, 300);
 		}

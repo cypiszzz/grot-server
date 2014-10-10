@@ -24,7 +24,7 @@ body {
 }
 .top .logo {
     float: left;
-    margin: 14px 100px;
+    margin: 14px 100px 0;
 }
 
 .container .column {
@@ -92,12 +92,14 @@ body {
 
 /* .score-board */
 .score-board {
-
+    max-width: 900px;
+    margin: auto;
 }
 .score-board ul {
     list-style-type: none;
     padding-left: 0;
     position: relative;
+    font-size: 25px;
 }
 .score-board ul li {
     clear: both;
@@ -116,7 +118,11 @@ body {
 .score-board ul li div.avatar img {
     width: 50px;
     height: 45px;
-    margin-top: -19px;
+    margin-top: -11px;
+}
+.score-board ul li div.position {
+    font-weight: bold;
+    margin-right: 10px;
 }
 .score-board ul li div.name {
     width: 100px;
