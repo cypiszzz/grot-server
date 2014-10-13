@@ -201,6 +201,7 @@ var PlayerBoard = Backbone.View.extend({
 
 		this.$el.empty();
 		this.$el.append($('<h3>').html('player:' + this.model.id + ' <small>points:' + this.model.get('score') + ' moves:' + this.model.get('moves') + '</small>'));
+		this.$el.append($('<p>').text(this.model.get('moved')));
 
 		if (board) {
 			this.$el.append(this.template({

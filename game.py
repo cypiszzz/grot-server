@@ -20,18 +20,29 @@ class Game(object):
 
             self.user = user
             self.ready = toro.Event()
+            self.moved = None
 
         def start_move(self, x, y):
             try:
                 super(Game.Player, self).start_move(x, y)
             finally:
+                self.moved = (x, y)
                 self.ready.set()
 
         def skip_move(self):
             try:
                 super(Game.Player, self).skip_move()
             finally:
+                self.moved = None
                 self.ready.set()
+
+        def get_state(self, board=True):
+            state = super(Game.Player, self).get_state(board)
+            state.update({
+                'moved': self.moved
+            })
+
+            return state
 
     def __init__(self, board):
         self.board = board
