@@ -1,0 +1,9 @@
+{
+    "globals":
+    [
+        "Game", "ScoreBoard", "PlayerBoard",
+        "$",
+        "Backbone",
+        "_"
+    ]
+}

@@ -136,22 +136,16 @@ var ScoreBoard = Backbone.View.extend({
 			};
 
 			if(i + 1 > this.playersInColumn) {
-				animate.left = '50%';
+				animate.left = '100%';
 				animate.top -= (this.playersInColumn) * this.playerEntryHeight;
 			}
 			$playerEntry.stop(true).animate(animate, 300);
 		}
 
 		if(this.model.players.models.length < this.playersInColumn + 1) {
-			this.$el.css({
-				left: '50%',
-				'margin-left': this.columnWidth * -1 / 2
-			});
+			this.$el.removeClass('two-columns');
 		} else {
-			this.$el.css({
-				left: 0,
-				'margin-left': 0
-			});
+			this.$el.addClass('two-columns');
 		}
 	}
 });
