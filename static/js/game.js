@@ -3,6 +3,43 @@
 // for debug purposes
 var pr = console.log.bind(console);
 
+var Synchronize = {
+	on: function(name, callback, context) {
+		Backbone.Events.on.call(this, name, callback, context);
+
+		if (name == 'sync' && !this._fetching) {
+			this._fetch();
+		}
+
+		return this;
+	},
+
+	off: function(name, callback, context) {
+		Backbone.Events.off.call(this, name, callback, context);
+
+		if (!this._events['sync'] && this._fetching) {
+			this._fetching.abort();
+			this._fetching = null;
+		}
+
+		return this;
+	},
+
+	_fetch: function(options) {
+		options = options || {}
+		options['ifModified'] = true;
+		options['success'] = _.bind(function(model, response, options) {
+			if (options.xhr.status == 200) {
+				this._fetch();
+			} else {
+				this._fetching = null;
+			}
+		}, this);
+
+		this._fetching = this.fetch(options);
+	}
+}
+
 var Game = Backbone.Model.extend({
 	urlRoot: '/games/',
 
@@ -14,7 +51,9 @@ var Game = Backbone.Model.extend({
 });
 
 var Player = Backbone.Model.extend({
+
 });
+_.extend(Player.prototype, Synchronize);
 
 var Players = Backbone.Collection.extend({
 	model: Player,
@@ -30,13 +69,16 @@ var Players = Backbone.Collection.extend({
 	initialize: function(models, options) {
 		this.game = options.game;
 
-		this.listenTo(this, 'reset change', this.sort);
+		this.on('reset change', this.sort, this);
 	},
 
 	parse: function(response, options) {
-		return response.players;
+		if (response) {
+			return response.players;
+		}
 	}
 });
+_.extend(Players.prototype, Synchronize);
 
 var ScoreBoard = Backbone.View.extend({
 	template: _.template(
@@ -57,13 +99,7 @@ var ScoreBoard = Backbone.View.extend({
 		var $main = $('.main');
 
 		this.listenTo(this.model.players, 'sort', this.render);
-		this.listenTo(this.model.players, 'sync', function(collection, response) {
-			if (response.game.ended === false) {
-				collection.fetch();
-			}
-		});
-
-		this.model.players.fetch();
+		this.listenTo(this.model.players, 'sync');
 
 		this.playerEntryHeight = 50;
 		this.columnWidth = 400;
@@ -133,15 +169,25 @@ var PlayerBoard = Backbone.View.extend({
 		'</table>'
 	),
 
-	initialize: function() {
-		this.listenTo(this.model, 'change', this.render);
-		this.listenTo(this.model, 'sync', function(model, response, options) {
-			if (model.get('moves')) {
-				model.fetch();
-			}
-		});
+	initialize: function(options) {
+		if (this.collection) {
+			this.listenTo(this.collection, 'sync');
+		}
+	},
 
-		this.model.fetch();
+	show: function(model) {
+		if (this.model) {
+			this.stopListening(this.model);
+		}
+
+		this.model = model;
+
+		if (this.model) {
+			this.listenTo(this.model, 'change', this.render);
+			this.listenTo(this.model, 'sync');
+		}
+
+		this.render();
 	},
 
 	render: function() {

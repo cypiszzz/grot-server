@@ -165,7 +165,6 @@ class GamePlayersHandler(BaseHandler):
             raise tornado.gen.Return()
 
         while True:
-            self.clear()
             self.write({
                 'game': {
                     'started': game.started,
@@ -183,10 +182,17 @@ class GamePlayersHandler(BaseHandler):
             })
             self.set_etag_header()
 
-            if self.check_etag_header() and not game.ended:
-                yield game.state_changed.wait()
-            else:
+            if not self.check_etag_header():
                 break
+
+            self.clear()
+
+            if game.ended:
+                self.set_status(http.client.NOT_MODIFIED)
+
+                raise tornado.gen.Return()
+
+            yield game.state_changed.wait()
 
 
 class GamePlayerHandler(BaseHandler):
@@ -199,17 +205,23 @@ class GamePlayerHandler(BaseHandler):
             raise tornado.web.HTTPError(http.client.NOT_FOUND)
 
         while True:
-            self.clear()
             self.write(player.get_state(game.started))
             self.set_etag_header()
 
-            if self.check_etag_header() and player.is_active():
-                if game.started and not player.ready.is_set():
-                    yield player.ready.wait()
-                else:
-                    yield game.next_round.wait()
-            else:
+            if not self.check_etag_header():
                 break
+
+            self.clear()
+
+            if not player.is_active():
+                self.set_status(http.client.NOT_MODIFIED)
+
+                raise tornado.gen.Return()
+
+            if game.started and not player.ready.is_set():
+                yield player.ready.wait()
+            else:
+                yield game.next_round.wait()
 
 
 class GameBoardHandler(BaseHandler):

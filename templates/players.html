@@ -9,24 +9,48 @@
 {% block content %}
 <h2>Players</h2>
 
+<div id="player1">
+    <select></select>
+    <div></div>
+</div>
+
+<div id="player2">
+    <select></select>
+    <div></div>
+</div>
+
 <script>
     var game = new Game({
         id: {{ game.id }}
     });
 
-    game.players.reset([
-        {% for player in game.players %}
+    game.players.on('add', function(model, collection, options) {
+        $('select').append($('<option>').val(model.id).text(model.get("name")));
+    });
+
+    {% for player in game.players %}
+    game.players.add([
         new Player({
             id: '{{ player.user.id }}',
             name: '{{ player.user.name }}',
         }),
-        {% end %}
     ]);
-    game.players.each(function(player) {
-        var board = new PlayerBoard({
-            model: player,
-            el: $('<div>').appendTo('.main'),
-        });
-    });
+    {% end %}
+
+    var player1 = new PlayerBoard({
+        collection: game.players,
+        el: $('div#player1 div'),
+    })
+    var player2 = new PlayerBoard({
+        collection: game.players,
+        el: $('div#player2 div'),
+    })
+
+    $('div#player1 select').on('change', function(ev) {
+        player1.show(game.players.get(ev.target.value));
+    })
+    $('div#player2 select').on('change', function(ev) {
+        player2.show(game.players.get(ev.target.value));
+    })
 </script>
 {% end %}
