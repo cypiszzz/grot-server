@@ -144,6 +144,29 @@ class Game(object):
             self._new_round()
 
 
+class GameContest(Game):
+
+    class PlayerNotQualifiedException(Exception):
+        pass
+
+    QUALIFICATION_TEST = lambda user: settings.db['duels'].find_one({
+        'players': {
+            '$elemMatch': {
+                'id': user.id,
+                'rating': {
+                    '$gt': 0.8
+                }
+            }
+        }
+    })
+
+    def add_player(self, user):
+        if not GameContest.QUALIFICATION_TEST(user):
+            raise GameContest.PlayerNotQualifiedException()
+
+        return super(GameContest, self).add_player(user)
+
+
 class GameDev(Game):
 
     class Player(Game.Player):

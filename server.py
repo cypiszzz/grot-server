@@ -10,7 +10,7 @@ import tornado.ioloop
 import tornado.web
 
 from game import (
-    Game,
+    GameContest,
     GameDev,
     GameDuel,
 )
@@ -23,7 +23,7 @@ from user import (
 # TODO seed
 games = [
     GameDev(Board(5, 1)),
-    Game(Board(5, 1)),
+    GameContest(Board(5, 1)),
     GameDuel(Board(5, 1)),
 ]
 
@@ -146,12 +146,6 @@ class GameHandler(BaseHandler):
         if not game.started:
             game.start()
 
-    @admin
-    @game
-    def delete(self, game):
-        if game.ended:
-            games[game.id] = Game.new(board_size=5)
-
 
 class GamePlayersHandler(BaseHandler):
     @tornado.gen.coroutine
@@ -236,7 +230,10 @@ class GameBoardHandler(BaseHandler):
             if game.started:
                 raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
-            player = game.add_player(self.current_user)
+            try:
+                player = game.add_player(self.current_user)
+            except GameContest.PlayerNotQualifiedException:
+                raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
         if not game.started:
             yield game.next_round.wait()
