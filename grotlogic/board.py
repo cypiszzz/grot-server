@@ -5,7 +5,7 @@ from .field import Field
 
 class Board(object):
 
-    def __init__(self, size, seed):
+    def __init__(self, size, seed=None):
         self.size = size
         self.seed = seed
         self.random = random.Random(seed)

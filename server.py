@@ -22,16 +22,16 @@ from user import (
 
 # TODO seed
 games = [
-    GameDev(Board(5, 1)),
-    GameContest(Board(5, 1)),
-    GameDuel(Board(5, 1)),
+    GameDev(Board(5)),
+    GameDuel(Board(5)),
+    GameContest(Board(5)),
 ]
 
 
 #TODO dirty hack just before pycon
 def restart_duel(future=None):
     def restart(future=None):
-        games[2] = GameDuel(Board(5, 1))
+        games[1] = GameDuel(Board(5))
 
         restart_duel()
 
@@ -41,7 +41,7 @@ def restart_duel(future=None):
         )
 
     tornado.ioloop.IOLoop.instance().add_future(
-        games[2].on_end.wait(), delay
+        games[1].on_end.wait(), delay
     )
 
 restart_duel()
