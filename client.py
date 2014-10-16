@@ -7,7 +7,6 @@ import time
 if __name__ == '__main__':
     token = sys.argv[1]
     game = sys.argv[2]
-    rand = random.Random(1)
 
     time.sleep(random.random())
 
@@ -25,8 +24,8 @@ if __name__ == '__main__':
         client.request(
             'POST', '/games/{}/board?token={}'.format(game, token),
             json.dumps({
-                'x': rand.randint(0, 4),
-                'y': rand.randint(0, 4),
+                'x': random.randint(0, 4),
+                'y': random.randint(0, 4),
             })
         )
 

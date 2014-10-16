@@ -220,7 +220,7 @@ class GameDuel(Game):
         else:
             #TODO bot
             subprocess.Popen(
-                ['python3', 'client.py', 'STXNext', str(self.id)]
+                ['python3', '../grot-stxnext-bot/bot.py', 'TOKEN']
             )
 
         return player
