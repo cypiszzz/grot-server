@@ -161,6 +161,7 @@ class GameHandler(BaseHandler):
         if 'html' in self.request.headers.get('Accept', 'html'):
             return self.render('templates/game.html', **{
                 'game': game,
+                'user': self.current_user,
             })
 
     @admin
@@ -168,6 +169,8 @@ class GameHandler(BaseHandler):
     def put(self, game):
         if not game.started:
             game.start()
+        elif game.ended:
+            games[2] = GameContest(Board(5))
 
 
 class GamePlayersHandler(BaseHandler):

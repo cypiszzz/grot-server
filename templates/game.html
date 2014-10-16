@@ -39,5 +39,15 @@
         }),
         {% end %}
     ]);
+
+    {% if user and user.admin %}
+    $(function() {
+        $('.top h1').click(function() {
+            $.ajax({
+                type: 'PUT'
+            });
+        });
+    });
+    {% end %}
 </script>
 {% end %}
