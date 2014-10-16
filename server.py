@@ -186,7 +186,7 @@ class GamePlayersHandler(BaseHandler):
 
                 raise tornado.gen.Return()
 
-            yield game.state_changed.wait()
+            yield game.on_change.wait()
 
 
 class GamePlayerHandler(BaseHandler):
@@ -215,7 +215,7 @@ class GamePlayerHandler(BaseHandler):
             if game.started and not player.ready.is_set():
                 yield player.ready.wait()
             else:
-                yield game.next_round.wait()
+                yield game.on_progress.wait()
 
 
 class GameBoardHandler(BaseHandler):
@@ -236,7 +236,7 @@ class GameBoardHandler(BaseHandler):
                 raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
         if not game.started:
-            yield game.next_round.wait()
+            yield game.on_progress.wait()
 
         self.write(player.get_state())
 
@@ -268,7 +268,7 @@ class GameBoardHandler(BaseHandler):
             raise tornado.web.HTTPError(http.client.BAD_REQUEST)
 
         if player.ready.is_set():
-            yield game.next_round.wait()
+            yield game.on_progress.wait()
 
         try:
             player.start_move(x, y)

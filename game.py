@@ -48,8 +48,9 @@ class Game(object):
         self.board = board
         self.round = 0
 
-        self.next_round = toro.Condition()
-        self.state_changed = toro.Condition()
+        self.on_change = toro.Condition()
+        self.on_end = toro.Condition()
+        self.on_progress = toro.Condition()
 
         self._players = {}
         self._future_round = None
@@ -102,7 +103,7 @@ class Game(object):
         player = self.Player(user, copy.copy(self.board))
         self._players[str(user.id)] = player
 
-        self.state_changed.notify_all()
+        self.on_change.notify_all()
 
         return player
 
@@ -123,14 +124,14 @@ class Game(object):
             self.TIMEOUT, self._end_round
         )
 
-        self.next_round.notify_all()
+        self.on_progress.notify_all()
 
     def _end_round(self):
         for player in self.players_unready:
             player.skip_move()
 
     def _player_ready(self, future):
-        self.state_changed.notify_all()
+        self.on_change.notify_all()
 
         if any(self.players_unready):
             return
@@ -142,6 +143,8 @@ class Game(object):
 
         if any(self.players_active):
             self._new_round()
+        else:
+            self.on_end.notify_all()
 
 
 class GameContest(Game):
