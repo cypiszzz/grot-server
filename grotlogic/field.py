@@ -21,4 +21,6 @@ class Field(object):
         return {
             'points': self.points,
             'direction': self.direction,
+            'x': self.x,
+            'y': self.y,
         }
