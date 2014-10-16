@@ -7,12 +7,12 @@ class Board(object):
 
     def __init__(self, size, seed=None):
         self.size = size
-        self.seed = seed
+        self.seed = seed if seed else random.getrandbits(128)
         self.random = random.Random(seed)
 
         self.fields = [
-            [Field(x, y, self.random) for x in range(size)]
-            for y in range(size)
+            [Field(x, y, self.random) for y in range(size)]
+            for x in range(size)
         ]
 
     def __copy__(self):
@@ -22,7 +22,7 @@ class Board(object):
         """
         Returns the field at the given coordinates.
         """
-        return self.fields[y][x]
+        return self.fields[x][y]
 
     def get_next_field(self, field, direction=None):
         """

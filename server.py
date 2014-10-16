@@ -20,6 +20,8 @@ from user import (
     LocalUser,
 )
 
+log = logging.getLogger('grot-server')
+
 # TODO seed
 games = [
     GameDev(Board(5)),
@@ -311,5 +313,6 @@ application = tornado.web.Application([
 ], debug=True)
 
 if __name__ == '__main__':
+    log.warn('Starting server http://127.0.0.1:8080')
     application.listen(8080)
     tornado.ioloop.IOLoop.instance().start()
