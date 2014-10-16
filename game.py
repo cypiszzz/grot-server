@@ -239,7 +239,7 @@ class GameDuel(Game):
                     {
                         'id': player.user.id,
                         'score': player.score,
-                        'rating': player.score / top.score
+                        'rating': player.score / top.score if top.score else 0
                     }
                     for player in self.players
                 ],
