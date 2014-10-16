@@ -28,6 +28,25 @@ games = [
 ]
 
 
+#TODO dirty hack just before pycon
+def restart_duel(future=None):
+    def restart(future=None):
+        games[2] = GameDuel(Board(5, 1))
+
+        restart_duel()
+
+    def delay(future=None):
+        tornado.ioloop.IOLoop.instance().call_later(
+            10, restart
+        )
+
+    tornado.ioloop.IOLoop.instance().add_future(
+        games[2].on_end.wait(), delay
+    )
+
+restart_duel()
+
+
 def user(handler):
     @functools.wraps(handler)
     def wrapper(self, *args, **kwargs):
