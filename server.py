@@ -106,7 +106,9 @@ class IndexHandler(BaseHandler):
 
 class SignUpHandler(BaseHandler):
     def get(self):
-        self.render('templates/signup.html')
+        self.render('templates/signup.html', **{
+            'error': None
+        })
 
     def post(self):
         name = tornado.escape.xhtml_escape(self.get_body_argument('name'))
