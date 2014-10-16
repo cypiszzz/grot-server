@@ -7,7 +7,7 @@ class Board(object):
 
     def __init__(self, size, seed=None):
         self.size = size
-        self.seed = seed if seed else random.getrandbits(128)
+        self.seed = seed or random.getrandbits(128)
         self.random = random.Random(seed)
 
         self.fields = [
