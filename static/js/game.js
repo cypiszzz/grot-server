@@ -4,6 +4,9 @@
 var pr = console.log.bind(console);
 
 var Synchronize = {
+
+	RETRY: 1000,
+
 	on: function(name, callback, context) {
 		Backbone.Events.on.call(this, name, callback, context);
 
@@ -26,15 +29,21 @@ var Synchronize = {
 	},
 
 	_fetch: function(options) {
-		options = options || {}
-		options['ifModified'] = true;
-		options['success'] = _.bind(function(model, response, options) {
-			if (options.xhr.status == 200) {
-				this._fetch();
-			} else {
-				this._fetching = null;
+		options = _.extend(options || {}, {
+			'ifModified': true,
+			'success': function(model, response, options) {
+				if (options.xhr.status == 200) {
+					model._fetch();
+				} else {
+					model._fetching = null;
+
+					_.delay(_.bind(model._fetch, model), Synchronize.RETRY);
+				}
+			},
+			'error': function(model, response, options) {
+				_.delay(_.bind(model._fetch, model), Synchronize.RETRY);
 			}
-		}, this);
+		});
 
 		this._fetching = this.fetch(options);
 	}
