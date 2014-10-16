@@ -77,14 +77,20 @@ var Players = Backbone.Collection.extend({
 
 	initialize: function(models, options) {
 		this.game = options.game;
-
-		this.on('reset change', this.sort, this);
 	},
 
 	parse: function(response, options) {
-		if (response) {
-			return response.players;
+		// not modified
+		if (_.isUndefined(response)) {
+			return this.models;
 		}
+
+		// display last players if there is none waiting
+		if (_.isEmpty(response.players)) {
+			return this.models;
+		}
+
+		return response.players;
 	}
 });
 _.extend(Players.prototype, Synchronize);
@@ -107,6 +113,7 @@ var ScoreBoard = Backbone.View.extend({
 		var boardHeight;
 		var $main = $('.main');
 
+		this.listenTo(this.model.players, 'remove', this.remove);
 		this.listenTo(this.model.players, 'sort', this.render);
 		this.listenTo(this.model.players, 'sync');
 
@@ -118,6 +125,10 @@ var ScoreBoard = Backbone.View.extend({
 			$main.css('height', boardHeight);
 			_this.render();
 		}).resize();
+	},
+
+	remove: function(model, collection, options) {
+		this.$el.find('#player_' + model.id).remove();
 	},
 
 	render: function() {
