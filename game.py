@@ -7,6 +7,7 @@ import toro
 
 import grotlogic.game
 import settings
+from user import LocalUser
 
 
 class Game(object):
@@ -152,16 +153,17 @@ class GameContest(Game):
     class PlayerNotQualifiedException(Exception):
         pass
 
-    QUALIFICATION_TEST = lambda user: settings.db['duels'].find_one({
-        'players': {
-            '$elemMatch': {
-                'id': user.id,
-                'rating': {
-                    '$gt': 0.8
+    QUALIFICATION_TEST = lambda user: \
+        isinstance(user, LocalUser) or settings.db['duels'].find_one({
+            'players': {
+                '$elemMatch': {
+                    'id': user.id,
+                    'rating': {
+                        '$gt': 0.8
+                    }
                 }
             }
-        }
-    })
+        })
 
     def add_player(self, user):
         if not GameContest.QUALIFICATION_TEST(user):
