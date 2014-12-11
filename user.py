@@ -6,11 +6,11 @@ import multiprocessing.pool
 import settings
 
 
-smtp = smtplib.SMTP(settings.SMTP_HOST)
-smtp.starttls()
-smtp.login(settings.SMTP_EMAIL, settings.SMTP_PASSWORD)
+# smtp = smtplib.SMTP(settings.SMTP_HOST)
+# smtp.starttls()
+# smtp.login(settings.SMTP_EMAIL, settings.SMTP_PASSWORD)
 
-smtp_thread = multiprocessing.pool.ThreadPool(1)
+# smtp_thread = multiprocessing.pool.ThreadPool(1)
 
 
 class User(object):
@@ -65,6 +65,7 @@ class User(object):
         smtp_thread.apply_async(task, (self, subject, body))
 
     def on_create(self):
+        pass
         self.send('Registration', self.token)
 
 
