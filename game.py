@@ -1,13 +1,10 @@
 import copy
-import datetime
 import subprocess
 
 import tornado.ioloop
 import toro
 
 import grotlogic.game
-import settings
-from user import LocalUser
 
 
 class Game(object):
@@ -153,17 +150,7 @@ class GameContest(Game):
     class PlayerNotQualifiedException(Exception):
         pass
 
-    QUALIFICATION_TEST = lambda user: \
-        isinstance(user, LocalUser) or settings.db['duels'].find_one({
-            'players': {
-                '$elemMatch': {
-                    'id': user.id,
-                    'rating': {
-                        '$gt': 0.8
-                    }
-                }
-            }
-        })
+    QUALIFICATION_TEST = lambda user: True
 
     def add_player(self, user):
         if not GameContest.QUALIFICATION_TEST(user):
@@ -226,21 +213,3 @@ class GameDuel(Game):
             )
 
         return player
-
-    def _player_ready(self, future):
-        super(GameDuel, self)._player_ready(future)
-
-        if not any(self.players_active):
-            top = max(self.players, key=lambda player: player.score)
-
-            settings.db['duels'].save({
-                'datetime': datetime.datetime.utcnow(),
-                'players': [
-                    {
-                        'id': player.user.id,
-                        'score': player.score,
-                        'rating': player.score / top.score if top.score else 0
-                    }
-                    for player in self.players
-                ],
-            })

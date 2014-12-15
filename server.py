@@ -2,7 +2,6 @@ import functools
 import http.client
 import json
 import logging
-import re
 
 import tornado.escape
 import tornado.gen
@@ -93,52 +92,16 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):
         token = self.get_query_argument('token', None)
-        user = User.get(token)
 
-        if not user and self.request.remote_ip == '127.0.0.1':
+        if self.request.remote_ip == '127.0.0.1':
             return LocalUser(token or 'LocalUser')
 
-        return user
+        return User(token) if token else None
 
 
 class IndexHandler(BaseHandler):
     def get(self):
         self.redirect('/games')
-
-
-class SignUpHandler(BaseHandler):
-    def get(self):
-        self.render('templates/signup.html', **{
-            'error': None
-        })
-
-    def post(self):
-        name = tornado.escape.xhtml_escape(self.get_body_argument('name'))
-        email = tornado.escape.xhtml_escape(self.get_body_argument('email'))
-
-        if not name or not email:
-            return self.render('templates/signup.html', **{
-                'error': 'empty'
-            })
-
-        #TODO robust email validation?
-        if not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-            return self.render('templates/signup.html', **{
-                'error': 'email'
-            })
-
-        if (
-            User.collection.find_one({'name': name}) is not None
-            or User.collection.find_one({'email': email}) is not None
-        ):
-            return self.render('templates/signup.html', **{
-                'error': 'exists'
-            })
-
-        user = User(name, email)
-        user.put()
-
-        self.render('templates/thanks.html')
 
 
 class GamesHandler(BaseHandler):
@@ -307,7 +270,6 @@ class GameBoardHandler(BaseHandler):
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static'}),
     (r'/', IndexHandler),
-    (r'/signup', SignUpHandler),
     (r'/games', GamesHandler),
     (r'/games/(\d+)', GameHandler),
     (r'/games/(\d+)/board', GameBoardHandler),
