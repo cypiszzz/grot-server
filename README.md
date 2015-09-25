@@ -11,6 +11,7 @@ Requirements
 Install
 -------
 
+	mkvirtualenv grot-server -p /usr/bin/python3.4
 	pip3 install -r requirements.txt
 
 Run
@@ -18,15 +19,13 @@ Run
 
 ### Server
 
+	workon grot-server
 	python3 server.py
 
-### Client
 
-	python3 client.py [Name] [Game]
+Client
+------
 
-Games
------
-
-### Contest
-
-To run the Contest game click on 'GROT - Score Board'
+For details check
+[grot-client](https://github.com/stxnext/grot-client)
+repository.
