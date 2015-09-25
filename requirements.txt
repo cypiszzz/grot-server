@@ -1,2 +1,3 @@
 tornado >= 4.0.1
 toro >= 0.6
+pymongo >= 3.0
