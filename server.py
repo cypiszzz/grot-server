@@ -2,22 +2,22 @@ import functools
 import http.client
 import json
 import logging
+import re
+import requests
 
 import tornado.escape
 import tornado.gen
 import tornado.ioloop
 import tornado.web
 
+import settings
 from game import (
     GameContest,
     GameDev,
     GameDuel,
 )
 from grotlogic.board import Board
-from user import (
-    User,
-    LocalUser,
-)
+from user import User
 
 log = logging.getLogger('grot-server')
 
@@ -92,16 +92,56 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):
         token = self.get_query_argument('token', None)
-
-        if self.request.remote_ip == '127.0.0.1':
-            return LocalUser(token or 'LocalUser')
-
-        return User(token) if token else None
+        return User.get(token)
 
 
 class IndexHandler(BaseHandler):
     def get(self):
         self.redirect('/games')
+
+
+class SignInHandler(BaseHandler):
+    def get(self):
+        self.render('templates/signin.html', **{
+            'GH_OAUTH_CLIENT_ID': settings.GH_OAUTH_CLIENT_ID
+        })
+
+
+class OAuthHandler(BaseHandler):
+    def get(self):
+        gh_code = self.get_query_argument('code', None)
+        if not gh_code:
+            self.redirect('/sign-in')
+
+        pay_load = {
+            'client_id': settings.GH_OAUTH_CLIENT_ID,
+            'client_secret': settings.GH_OAUTH_CLIENT_SECRET,
+            'code' : gh_code,
+        }
+        resp = requests.post(
+            'https://github.com/login/oauth/access_token',
+            data=json.dumps(pay_load),
+            headers={
+                'content-type': 'application/json',
+                'Accept': 'application/json',
+            }
+        )
+        access_token = resp.json().get('access_token', None)
+        if not access_token:
+            self.redirect('/sign-in')
+
+        resp = requests.get(
+            'https://api.github.com/user?access_token=' + access_token
+        )
+        user_data = resp.json()
+
+        login = user_data['login']
+        user = User.get(login=login)
+        if not user:
+            user = User(login, data=user_data, gh_token=access_token)
+            user.put()
+
+        self.render('templates/thanks.html', token=user.token, login=login)
 
 
 class GamesHandler(BaseHandler):
@@ -270,6 +310,8 @@ class GameBoardHandler(BaseHandler):
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static'}),
     (r'/', IndexHandler),
+    (r'/sign-in', SignInHandler),
+    (r'/gh-oauth', OAuthHandler),
     (r'/games', GamesHandler),
     (r'/games/(\d+)', GameHandler),
     (r'/games/(\d+)/board', GameBoardHandler),
