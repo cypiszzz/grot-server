@@ -18,6 +18,17 @@ class User(object):
     def __lt__(self, other):
         return self.login < other.login
 
+    @property
+    def name(self):
+        if self.data and self.data.get('name'):
+            return self.data['name']
+        else:
+            return self.login
+
+    @property
+    def admin(self):
+        return self.login in settings.ADMINS
+
     @classmethod
     def get(cls, token=None, login=None):
         query = {}

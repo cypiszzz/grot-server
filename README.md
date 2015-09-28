@@ -13,10 +13,16 @@ Requirements
 Install
 -------
 
-	mkvirtualenv grot-server -p /usr/bin/python3.4
-	pip3 install -r requirements.txt
-	mkdir -p var/db
-	mkdir -p var/log
+	$ mkvirtualenv grot-server -p /usr/bin/python3.4
+	$ pip3 install -r requirements.txt
+	$ mkdir -p var/db
+	$ mkdir -p var/log
+	$ mongo
+	> use grot
+	> db.users.insert({"token": "STXNext", "login": "STX Next Bot", "data": {"email": "developer@stxnext.pl"}})
+	> exit
+	$ cd ..
+	$ git clone git@github.com:stxnext/grot-stxnext-bot.git
 
 Run
 ---
