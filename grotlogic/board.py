@@ -72,7 +72,8 @@ class Board(object):
             next_field = self.get_field(field.x, new_y)
             # swap fields values
             field.points, next_field.points = next_field.points, field.points
-            field.direction, next_field.direction = next_field.direction, field.direction
+            field.direction = next_field.direction
+            next_field.direction = field.direction
 
     def lower_fields(self):
         """

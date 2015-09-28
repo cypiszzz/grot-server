@@ -29,7 +29,7 @@ games = [
 ]
 
 
-#TODO dirty hack just before pycon
+# TODO dirty hack just before pycon
 def restart_duel(future=None):
     def restart(future=None):
         games[1] = GameDuel(Board(5))
@@ -74,7 +74,7 @@ def game(handler):
     @functools.wraps(handler)
     def wrapper(self, game, *args, **kwargs):
         try:
-            #FIXME dirty workaround
+            # FIXME dirty workaround
             game_id = int(game)
             game = games[game_id]
             game.id = game_id
@@ -116,7 +116,7 @@ class OAuthHandler(BaseHandler):
         pay_load = {
             'client_id': settings.GH_OAUTH_CLIENT_ID,
             'client_secret': settings.GH_OAUTH_CLIENT_SECRET,
-            'code' : gh_code,
+            'code': gh_code,
         }
         resp = requests.post(
             'https://github.com/login/oauth/access_token',

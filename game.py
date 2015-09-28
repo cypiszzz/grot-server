@@ -199,7 +199,6 @@ class GameDuel(Game):
         if len(self.players) == 2:
             self.start()
         else:
-            #TODO bot
             subprocess.Popen(
                 ['python3', '../grot-stxnext-bot/bot.py', 'STXNext', '1']
             )
