@@ -29,9 +29,13 @@ Run
 
 ### Server
 
-	workon grot-server
-	./mongod
-	python3 server.py
+	$ workon grot-server
+	$ ./mongod
+	$ python3 server.py
+
+### Tests
+    
+    $ python3 tests/test_server.py
 
 
 Client
