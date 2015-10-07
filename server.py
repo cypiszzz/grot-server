@@ -24,6 +24,9 @@ game_rooms = GameRoom.get_all()
 
 
 def user(handler):
+    """
+    Handler only for signed in users.
+    """
     @functools.wraps(handler)
     def wrapper(self, *args, **kwargs):
         if self.current_user is None:
@@ -34,6 +37,9 @@ def user(handler):
 
 
 def room_owner(handler):
+    """
+    Handler only for owner of a room.
+    """
     @user
     def wrapper(self, game_room, *args, **kwargs):
         if game_room.author != self.current_user.login:
@@ -45,6 +51,9 @@ def room_owner(handler):
 
 
 def game_room(handler):
+    """
+    Get GameRoom object by room_id and pass it to the handler.
+    """
     @functools.wraps(handler)
     def wrapper(self, room_id, *args, **kwargs):
         try:
@@ -63,6 +72,9 @@ def game_room(handler):
 class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):
+        """
+        Search for token in GET, POST or cookie. Get User object by token.
+        """
         token = self.get_query_argument('token', None)
         if not token:
             token = self.get_secure_cookie('token')
@@ -78,6 +90,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class IndexHandler(BaseHandler):
+    """
+    Home page (help and sign in link).
+    """
+
     def get(self):
         self.render(
             'templates/index.html',
@@ -87,6 +103,10 @@ class IndexHandler(BaseHandler):
 
 
 class OAuthHandler(BaseHandler):
+    """
+    Finalize GitHub OAuth sign in, set cookie with token.
+    """
+
     def get(self):
         gh_code = self.get_query_argument('code', None)
         if not gh_code:
@@ -127,6 +147,9 @@ class OAuthHandler(BaseHandler):
 class GamesHandler(BaseHandler):
 
     def get(self):
+        """
+        List of game rooms.
+        """
         if 'html' in self.request.headers.get('Accept', 'html'):
             return self.render(
                 'templates/games.html',
@@ -139,6 +162,9 @@ class GamesHandler(BaseHandler):
 
     @user
     def post(self):
+        """
+        Create new game room.
+        """
         data = json.loads(self.request.body.decode())
         if not data:  # TODO - validate input
             raise tornado.web.HTTPError(400, 'Wrong data')
@@ -153,9 +179,15 @@ class GamesHandler(BaseHandler):
 
 
 class GameHandler(BaseHandler):
+    """
+    Manage game rooms.
+    """
 
     @game_room
     def get(self, game_room):
+        """
+        Game results page.
+        """
         if 'html' in self.request.headers.get('Accept', 'html'):
             return self.render('templates/game.html', **{
                 'game_room': game_room,
@@ -165,16 +197,25 @@ class GameHandler(BaseHandler):
     @game_room
     @room_owner
     def post(self, game_room):
+        """
+        Start the game.
+        """
         if not game_room.started:
             game_room.start()
 
 
 class GameBoardHandler(BaseHandler):
+    """
+    Join game, make moves. Handler called from game client.
+    """
 
     @tornado.gen.coroutine
     @user
     @game_room
     def get(self, game_room):
+        """
+        Join the game, wait for start. Returns first board state.
+        """
         try:
             player = game_room[self.current_user]
         except LookupError:
@@ -195,6 +236,9 @@ class GameBoardHandler(BaseHandler):
     @user
     @game_room
     def post(self, game_room):
+        """
+        Make a move on board. Returns board state after move.
+        """
         try:
             player = game_room[self.current_user]
         except LookupError:
@@ -230,9 +274,16 @@ class GameBoardHandler(BaseHandler):
 
 
 class GamePlayersHandler(BaseHandler):
+    """
+    List of players in the game.
+    """
+
     @tornado.gen.coroutine
     @game_room
     def get(self, game_room):
+        """
+        Stream list of players.
+        """
         if 'html' in self.request.headers.get('Accept', 'html'):
             self.render('templates/players.html', game_room=game_room)
             raise tornado.gen.Return()
@@ -268,16 +319,23 @@ class GamePlayersHandler(BaseHandler):
 
 
 class GamePlayerHandler(BaseHandler):
+    """
+    Players board status.
+    """
+
     @tornado.gen.coroutine
     @game_room
     def get(self, game_room, user):
+        """
+        Stream player board status.
+        """
         try:
             player = game_room[user]
         except LookupError:
             raise tornado.web.HTTPError(http.client.NOT_FOUND)
 
         while True:
-            self.write(player.get_state(game.started))
+            self.write(player.get_state(game_room.started))
             self.set_etag_header()
 
             if not self.check_etag_header():
@@ -290,10 +348,10 @@ class GamePlayerHandler(BaseHandler):
 
                 raise tornado.gen.Return()
 
-            if game.started and not player.ready.is_set():
+            if game_room.started and not player.ready.is_set():
                 yield player.ready.wait()
             else:
-                yield game.on_progress.wait()
+                yield game_room.on_progress.wait()
 
 
 application = tornado.web.Application(
