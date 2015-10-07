@@ -44,9 +44,13 @@ cd grot-client</pre>
                     <li>Or find &lt;room_id&gt; on <a href="/games">/games</a></li>
                     <li>
                         Join game
-                        <pre>python3 client.py play &lt;room_id&gt;</pre>
+                        <pre>python3 client.py join &lt;room_id&gt;</pre>
                     </li>
-                    <li>Condition when game starts can be configured by room author</li>
+                    <li>Wait for game start (when room is full or after X minutes or manually)</li>
+                    <li>
+                        Room owner can start game manually
+                        <pre>python3 client.py start &lt;room_id&gt;</pre>
+                    </li>
                     <li>Check results <a href="/game/room_id">/game/&lt;room_id&gt;</a></li>
                 </ul>
             </li>
