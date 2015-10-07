@@ -22,7 +22,7 @@
 
 <script>
     var game = new Game({
-        id: {{ game.id }}
+        id: '{{ game_room.room_id }}'
     });
     var scoreboard = new ScoreBoard({
         model: game,
@@ -30,9 +30,9 @@
     });
 
     game.players.reset([
-        {% for player in game.players %}
+        {% for player in game_room.players %}
         new Player({
-            id: '{{ player.user.id }}',
+            id: '{{ player.user.login }}',
             name: '{{ player.user.name }}',
             score: '{{ player.score }}',
             moves: '{{ player.moves }}',

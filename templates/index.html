@@ -1,0 +1,56 @@
+{% extends '__base.html' %}
+
+{% block content %}
+
+    
+    {% if current_user is None %}
+        <h3>To play GROT you have to
+            <a class="btn btn-block btn-social btn-github"
+               href="https://github.com/login/oauth/authorize?client_id={{ GH_OAUTH_CLIENT_ID }}&scope=user:email">
+                <i class="fa fa-github"></i>
+                Sign in with GitHub
+            </a>
+        </h3>
+    {% else %}
+        <h3>To play GROT you have to install and configure game client</h3>
+        <ol>
+            <li>Clone GROT client repository
+<pre>git clone https://github.com/stxnext/grot-client
+cd grot-client</pre>
+                </li>
+            <li>
+                Register your unique token in the client
+                <pre>python3 client.py register {{ current_user.token }}</pre>
+            </li>
+        </ol>
+        
+        <h3>You can play in few different ways</h3>
+        <ol>
+            <li>
+                Play one move in loop (development mode)
+                <pre>python3 client.py play_devel</pre>
+            </li>
+            <li>
+                Play full game against STX Bot
+                <pre>python3 client.py play_vs_bot</pre>
+            </li>
+            <li>
+                Play full game against other players
+                <ul>
+                    <li>
+                        Create your onw room
+                        <pre>python3 client.py new_room --max-players=10</pre>
+                    </li>
+                    <li>Or find &lt;room_id&gt; on <a href="/games">/games</a></li>
+                    <li>
+                        Join game
+                        <pre>python3 client.py play &lt;room_id&gt;</pre>
+                    </li>
+                    <li>Condition when game starts can be configured by room author</li>
+                    <li>Check results <a href="/game/room_id">/game/&lt;room_id&gt;</a></li>
+                </ul>
+            </li>
+        </ol>
+    {% end %}
+
+{% end %}

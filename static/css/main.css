@@ -20,6 +20,10 @@ body {
     color: #262626;
 }
 
+ol ul {
+    margin: 16px 0px;
+}
+
 .top {
     padding-top: 20px;
     padding-bottom: 20px;

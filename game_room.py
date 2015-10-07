@@ -1,22 +1,28 @@
-import copy
-import datetime
+import random
 import subprocess
+
+from datetime import datetime
 
 import tornado.ioloop
 import toro
 
-import grotlogic.game
 import settings
+from grotlogic.board import Board
+from grotlogic.game import Game
+
+class RoomIsFullException(Exception):
+    pass
 
 
-class Game(object):
+class GameRoom(object):
+    collection = settings.db['rooms']
 
     TIMEOUT = 10
 
-    class Player(grotlogic.game.Game):
+    class Player(Game):
 
         def __init__(self, user, board):
-            super(Game.Player, self).__init__(board)
+            super(GameRoom.Player, self).__init__(board)
 
             self.user = user
             self.ready = toro.Event()
@@ -24,28 +30,40 @@ class Game(object):
 
         def start_move(self, x, y):
             try:
-                super(Game.Player, self).start_move(x, y)
+                super(GameRoom.Player, self).start_move(x, y)
             finally:
                 self.moved = (x, y)
                 self.ready.set()
 
         def skip_move(self):
             try:
-                super(Game.Player, self).skip_move()
+                super(GameRoom.Player, self).skip_move()
             finally:
                 self.moved = None
                 self.ready.set()
 
         def get_state(self, board=True):
-            state = super(Game.Player, self).get_state(board)
+            state = super(GameRoom.Player, self).get_state(board)
             state.update({
                 'moved': self.moved
             })
 
             return state
 
-    def __init__(self, board):
-        self.board = board
+    def __init__(self, _id=None, board_size=5, title=None, max_players=15,
+                 auto_start=5, auto_restart=5, with_bot=False, author=None,
+                 timestamp=None):
+        self._id = _id
+        self.board_size = board_size
+        self.title = title or 'Game room {:%y%m%d%H%M}'.format(datetime.now())
+        self.max_players = max_players
+        self.auto_start = auto_start
+        self.auto_restart = auto_restart
+        self.with_bot = with_bot
+        self.author = author
+        self.timestamp = timestamp or datetime.now()
+
+        self.seed = random.getrandbits(128)
         self.round = 0
 
         self.on_change = toro.Condition()
@@ -54,6 +72,43 @@ class Game(object):
 
         self._players = {}
         self._future_round = None
+
+        # TODO - if auto_start then setup start game trigger
+        # TODo - if with_bot then start bot
+
+    @classmethod
+    def get_all(cls):
+        return {
+            str(data['_id']): cls(**data)
+            for data in GameRoom.collection.find()
+            if data
+        }
+
+    def put(self):
+        saved = self._id is not None
+        data = {
+            'title': self.title,
+            'board_size': self.board_size,
+            'max_players': self.max_players,
+            'auto_start': self.auto_start,
+            'auto_restart': self.auto_restart,
+            'with_bot': self.with_bot,
+            'author': self.author,
+            'timestamp': self.timestamp,
+            ## todo - save results
+        }
+
+        if saved:
+            data['_id'] = self._id
+
+        self._id = GameRoom.collection.save(data)
+
+    @property
+    def room_id(self):
+        return str(self._id) if self._id else None
+
+    def __lt__(self, other):
+        return self.timestamp < other.timestamp
 
     def __getitem__(self, user):
         user = user if isinstance(user, str) else str(user.id)
@@ -70,17 +125,11 @@ class Game(object):
 
     @property
     def players(self):
-        players = self._players.values()
-        players = sorted(
-            players,
-            key=lambda player: player.user
-        )
-        players = sorted(
-            players,
+        players = list(self._players.values())
+        players.sort(
             key=lambda player: (player.score, player.moves),
             reverse=True,
         )
-
         return players
 
     @property
@@ -100,15 +149,22 @@ class Game(object):
         )
 
     def add_player(self, user):
-        player = self.Player(user, copy.copy(self.board))
-        self._players[str(user.id)] = player
+        if self.max_players and len(self._players) < self.max_players:
+            player = self.Player(user, Board(self.board_size, self.seed))
+            self._players[str(user.id)] = player
 
-        self.on_change.notify_all()
+            self.on_change.notify_all()
+        else:
+            raise RoomIsFullException()
+
+        if len(self._players) == self.max_players and self.auto_start:
+            self.start()
 
         return player
 
     def start(self):
-        self._new_round()
+        if not self.started:
+            self._new_round()
 
     def _new_round(self):
         self.round += 1
@@ -146,20 +202,21 @@ class Game(object):
         else:
             self.on_end.notify_all()
 
+    def add_bot(self, user):
+        subprocess.Popen(
+            ['python3', '../grot-stxnext-bot/bot.py', self.room_id]
+        )
 
-class GameContest(Game):
-    pass
 
+class DevGameRoom(GameRoom):
 
-class GameDev(Game):
-
-    class Player(Game.Player):
+    class Player(GameRoom.Player):
         def start_move(self, x, y):
             try:
                 self.moves = 1
                 self.score = 0
 
-                super(GameDev.Player, self).start_move(x, y)
+                super(DevGameRoom.Player, self).start_move(x, y)
             finally:
                 self.ready.clear()
 
@@ -183,42 +240,9 @@ class GameDev(Game):
 
     def __getitem__(self, user):
         try:
-            return super(GameDev, self).__getitem__(user)
+            return super(DevGameRoom, self).__getitem__(user)
         except LookupError:
             return self.add_player(user)
 
     def start(self):
         pass
-
-
-class GameDuel(Game):
-
-    def add_player(self, user):
-        player = super(GameDuel, self).add_player(user)
-
-        if len(self.players) == 2:
-            self.start()
-        else:
-            subprocess.Popen(
-                ['python3', '../grot-stxnext-bot/bot.py', 'STXNext', '1']
-            )
-
-        return player
-
-    def _player_ready(self, future):
-        super(GameDuel, self)._player_ready(future)
-
-        if not any(self.players_active):
-            top = max(self.players, key=lambda player: player.score)
-
-            settings.db['duels'].save({
-                'datetime': datetime.datetime.utcnow(),
-                'players': [
-                    {
-                        'id': player.user.id,
-                        'score': player.score,
-                        'rating': player.score / top.score if top.score else 0
-                    }
-                    for player in self.players
-                ],
-            })
