@@ -211,6 +211,11 @@ class GamesHandler(BaseHandler):
         with_bot = get_value('with_bot', bool, False)
         author = self.current_user.login
 
+        if auto_start:
+            auto_start *= 60
+        if auto_restart:
+            auto_restart *= 60
+
         authors = [room.author for room in game_rooms.values()]
         if not self.current_user.admin and authors.count(author) >= 5:
             raise tornado.web.HTTPError(
@@ -238,16 +243,34 @@ class GameHandler(BaseHandler):
     Manage game rooms.
     """
 
+    @tornado.gen.coroutine
     @game_room
     def get(self, game_room):
         """
         Game results page.
         """
         if 'html' in self.request.headers.get('Accept', 'html'):
-            return self.render('templates/game.html', **{
-                'game_room': game_room,
-                'user': self.current_user,
+            self.render('templates/game.html',
+                game_room=game_room,
+                user=self.current_user,
+            )
+            raise tornado.gen.Return()
+
+        while True:
+            self.write({
+                'started': game_room.started,
+                'ended': game_room.ended,
+                'start_in': game_room.get_deadline('_auto_start'),
+                'restart_in': game_room.get_deadline('_auto_restart'),
             })
+            self.set_etag_header()
+
+            if not self.check_etag_header():
+                break
+
+            self.clear()
+
+            yield tornado.gen.sleep(1)
 
     @game_room
     @room_owner
@@ -355,10 +378,6 @@ class GamePlayersHandler(BaseHandler):
 
         while True:
             self.write({
-                'game': {
-                    'started': game_room.started,
-                    'ended': game_room.ended,
-                },
                 'players': game_room.get_results(),
             })
             self.set_etag_header()

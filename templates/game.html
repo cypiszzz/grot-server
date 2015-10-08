@@ -8,6 +8,15 @@
 
 {% block content %}
 <div class="score-board">
+    <p>
+        {{ game_room.title }}
+        ({{ game_room.room_id }})
+    <p id="start_in">
+        Game will start in <span></span>s
+    </p>
+    <p id="restart_in">
+        Game will be restarted in <span></span>s
+    </p>
     <ul class="clearfix">
         <li class="head clearfix">
             <div class="avatar">&nbsp;</div>
@@ -26,7 +35,7 @@
     });
     var scoreboard = new ScoreBoard({
         model: game,
-        el: $('.score-board ul'),
+        el: $('.score-board'),
     });
 
     game.players.reset([
@@ -39,15 +48,5 @@
         }),
         {% end %}
     ]);
-
-    {% if user and user.admin %}
-    $(function() {
-        $('.top h1').click(function() {
-            $.ajax({
-                type: 'PUT'
-            });
-        });
-    });
-    {% end %}
 </script>
 {% end %}

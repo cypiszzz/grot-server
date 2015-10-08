@@ -4,7 +4,6 @@ import unittest.mock
 import importlib
 import http.client
 
-import game
 import server
 
 

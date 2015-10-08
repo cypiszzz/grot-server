@@ -1,5 +1,6 @@
 import random
 import subprocess
+import time
 
 from datetime import datetime
 
@@ -60,12 +61,12 @@ class GameRoom(object):
         self.with_bot = with_bot
         self.author = author
         self.timestamp = timestamp or datetime.now()
-        self.results = results
+        self.results = results if not auto_start else None
 
         self._delays = {
             '_end_round': self.TIMEOUT,
-            '_auto_start': auto_start * 60 if auto_start else None,
-            '_auto_restart': auto_restart * 60 if auto_restart else None,
+            '_auto_start': auto_start,
+            '_auto_restart': auto_restart,
         }
 
         self.seed = random.getrandbits(128)
@@ -140,6 +141,11 @@ class GameRoom(object):
         if handle:
             IOLoop.instance().remove_timeout(handle)
             del self._future[timeout_name]
+
+    def get_deadline(self, timeout_name):
+        handle = self._future.get(timeout_name)
+        if handle:
+            return int(handle.deadline - time.time())
 
     @property
     def started(self):
