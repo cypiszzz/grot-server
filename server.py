@@ -258,6 +258,16 @@ class GameHandler(BaseHandler):
         if not game_room.started:
             game_room.start()
 
+    @game_room
+    @room_owner
+    def delete(self, game_room):
+        """
+        Remove game room.
+        """
+        room_id = game_room.room_id
+        game_room.remove()
+        del game_rooms[room_id]
+
 
 class GameBoardHandler(BaseHandler):
     """
