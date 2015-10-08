@@ -17,12 +17,12 @@ Install
 	$ pip3 install -r requirements.txt
 	$ mkdir -p var/db
 	$ mkdir -p var/log
-	$ mongo
-	> use grot
-	> db.users.insert({"token": "STXNext", "login": "STX Next Bot", "data": {"email": "developer@stxnext.pl"}})
-	> exit
+	$ export BOT_TOKEN=`cat /proc/sys/kernel/random/uuid`
+	$ echo "BOT_TOKEN = '$BOT_TOKEN'" >> settings.py
+	$ mongo --eval "db.getSiblingDB('grot').users.insert({'token': '$BOT_TOKEN', 'login': 'stxnext', 'data': {'name': 'STX Next Bot', 'email': 'developer@stxnext.pl'}})"
 	$ cd ..
 	$ git clone git@github.com:stxnext/grot-stxnext-bot.git
+
 
 Run
 ---

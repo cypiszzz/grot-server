@@ -113,12 +113,15 @@ class GameRoom(object):
         return str(self._id) if self._id else None
 
     def __lt__(self, other):
-        return self.timestamp < other.timestamp
+        return self.timestamp > other.timestamp
 
     def __getitem__(self, user):
         user = user if isinstance(user, str) else str(user.id)
 
         return self._players[user]
+
+    def update_timestamp(self):
+        self.timestamp = datetime.now()
 
     @property
     def started(self):
@@ -154,6 +157,7 @@ class GameRoom(object):
         )
 
     def add_player(self, user):
+        self.update_timestamp()
         if self.max_players and len(self._players) < self.max_players:
             player = self.Player(user, Board(self.board_size, self.seed))
             self._players[str(user.id)] = player
@@ -161,6 +165,10 @@ class GameRoom(object):
             self.on_change.notify_all()
         else:
             raise RoomIsFullException()
+
+        player_logins = [p.user.login for p in self._players.values()]
+        if self.with_bot and 'stxnext' not in player_logins:
+            self.add_bot()
 
         if len(self._players) == self.max_players and self.auto_start:
             self.start()
@@ -172,6 +180,7 @@ class GameRoom(object):
             self._new_round()
 
     def _new_round(self):
+        self.update_timestamp()
         self.round += 1
 
         for player in self.players_active:
@@ -188,10 +197,12 @@ class GameRoom(object):
         self.on_progress.notify_all()
 
     def _end_round(self):
+        self.update_timestamp()
         for player in self.players_unready:
             player.skip_move()
 
     def _player_ready(self, future):
+        self.update_timestamp()
         self.on_change.notify_all()
 
         if any(self.players_unready):
@@ -224,9 +235,14 @@ class GameRoom(object):
             for player in self.players
         ]
 
-    def add_bot(self, user):
+    def add_bot(self):
         subprocess.Popen(
-            ['python3', '../grot-stxnext-bot/bot.py', self.room_id]
+            [
+                'python3',
+                '../grot-stxnext-bot/bot.py',
+                settings.BOT_TOKEN,
+                self.room_id,
+            ]
         )
 
 
