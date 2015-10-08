@@ -52,16 +52,17 @@ class GameRoom(object):
 
     def __init__(self, board_size=5, title=None, max_players=15,
                  auto_start=5, auto_restart=5, with_bot=False, author=None,
-                 timestamp=None, _id=None):
+                 timestamp=None, _id=None, results=None):
         self._id = _id
         self.board_size = board_size
-        self.title = title or 'Game room {:%y%m%d%H%M}'.format(datetime.now())
+        self.title = title or 'Game room {:%Y%m%d%H%M%S}'.format(datetime.now())
         self.max_players = max_players
         self.auto_start = auto_start
         self.auto_restart = auto_restart
         self.with_bot = with_bot
         self.author = author
         self.timestamp = timestamp or datetime.now()
+        self.results = results
 
         self.seed = random.getrandbits(128)
         self.round = 0
@@ -95,7 +96,7 @@ class GameRoom(object):
             'with_bot': self.with_bot,
             'author': self.author,
             'timestamp': self.timestamp,
-            ## todo - save results
+            'results': self.results,
         }
 
         if saved:
@@ -204,7 +205,24 @@ class GameRoom(object):
         if any(self.players_active):
             self._new_round()
         else:
+            # save results
+            self.results = self.get_results()
+            self.put()
             self.on_end.notify_all()
+
+    def get_results(self):
+        if self.results:
+            return self.results
+
+        return [
+            {
+                'id': str(player.user.id),
+                'name': player.user.name,
+                'score': player.score,
+                'moves': player.moves,
+            }
+            for player in self.players
+        ]
 
     def add_bot(self, user):
         subprocess.Popen(

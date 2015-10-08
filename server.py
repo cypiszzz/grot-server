@@ -359,15 +359,7 @@ class GamePlayersHandler(BaseHandler):
                     'started': game_room.started,
                     'ended': game_room.ended,
                 },
-                'players': [
-                    {
-                        'id': str(player.user.id),
-                        'name': player.user.name,
-                        'score': player.score,
-                        'moves': player.moves,
-                    }
-                    for player in game_room.players
-                ]
+                'players': game_room.get_results(),
             })
             self.set_etag_header()
 
