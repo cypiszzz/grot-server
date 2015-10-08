@@ -10,6 +10,7 @@ import tornado.escape
 import tornado.gen
 import tornado.ioloop
 import tornado.web
+from tornado.httpclient import AsyncHTTPClient
 
 import settings
 from game_room import GameRoom, DevGameRoom, RoomIsFullException
@@ -107,6 +108,7 @@ class OAuthHandler(BaseHandler):
     Finalize GitHub OAuth sign in, set cookie with token.
     """
 
+    @tornado.gen.coroutine
     def get(self):
         gh_code = self.get_query_argument('code', None)
         if not gh_code:
@@ -117,22 +119,25 @@ class OAuthHandler(BaseHandler):
             'client_secret': settings.GH_OAUTH_CLIENT_SECRET,
             'code': gh_code,
         }
-        resp = requests.post(
+        http_client = AsyncHTTPClient()
+        resp = yield http_client.fetch(
             'https://github.com/login/oauth/access_token',
-            data=json.dumps(pay_load),
+            method='POST',
+            body=json.dumps(pay_load),
             headers={
                 'content-type': 'application/json',
                 'Accept': 'application/json',
             }
         )
-        access_token = resp.json().get('access_token', None)
+        access_token = json.loads(resp.body.decode('utf8')).get('access_token', None)
         if not access_token:
             self.redirect('/')
 
-        resp = requests.get(
-            'https://api.github.com/user?access_token=' + access_token
+        resp = yield http_client.fetch(
+            'https://api.github.com/user?access_token=' + access_token,
+            user_agent='GROT server'
         )
-        user_data = resp.json()
+        user_data = json.loads(resp.body.decode('utf8'))
 
         login = user_data['login']
         user = User.get(login=login)
