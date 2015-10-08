@@ -3,8 +3,8 @@ import subprocess
 
 from datetime import datetime
 
-import tornado.ioloop
 import toro
+from tornado.ioloop import IOLoop
 
 import settings
 from grotlogic.board import Board
@@ -57,12 +57,16 @@ class GameRoom(object):
         self.board_size = board_size
         self.title = title or 'Game room {:%Y%m%d%H%M%S}'.format(datetime.now())
         self.max_players = max_players
-        self.auto_start = auto_start
-        self.auto_restart = auto_restart
         self.with_bot = with_bot
         self.author = author
         self.timestamp = timestamp or datetime.now()
         self.results = results
+
+        self._delays = {
+            '_end_round': self.TIMEOUT,
+            '_auto_start': auto_start * 60 if auto_start else None,
+            '_auto_restart': auto_restart * 60 if auto_restart else None,
+        }
 
         self.seed = random.getrandbits(128)
         self.round = 0
@@ -72,10 +76,9 @@ class GameRoom(object):
         self.on_progress = toro.Condition()
 
         self._players = {}
-        self._future_round = None
+        self._future = {}
 
-        # TODO - if auto_start then setup start game trigger
-        # TODo - if with_bot then start bot
+        self.setup_timeout('_auto_start')
 
     @classmethod
     def get_all(cls):
@@ -91,8 +94,8 @@ class GameRoom(object):
             'title': self.title,
             'board_size': self.board_size,
             'max_players': self.max_players,
-            'auto_start': self.auto_start,
-            'auto_restart': self.auto_restart,
+            'auto_start': self._delays['_auto_start'],
+            'auto_restart': self._delays['_auto_restart'],
             'with_bot': self.with_bot,
             'author': self.author,
             'timestamp': self.timestamp,
@@ -123,13 +126,28 @@ class GameRoom(object):
     def update_timestamp(self):
         self.timestamp = datetime.now()
 
+    def setup_timeout(self, timeout_name):
+        delay = self._delays.get(timeout_name)
+        if delay:
+            self.cancel_timeout(timeout_name)
+
+            self._future[timeout_name] = IOLoop.instance().call_later(
+                delay, getattr(self, timeout_name)
+            )
+
+    def cancel_timeout(self, timeout_name):
+        handle = self._future.get(timeout_name)
+        if handle:
+            IOLoop.instance().remove_timeout(handle)
+            del self._future[timeout_name]
+
     @property
     def started(self):
         return self.round != 0
 
     @property
     def ended(self):
-        return self.started and self._future_round is None
+        return bool(self.results)
 
     @property
     def players(self):
@@ -175,8 +193,17 @@ class GameRoom(object):
 
         return player
 
+    def _auto_start(self):
+        if not self.started:
+            if len(self._players) > 1:
+                self.start()
+            else:
+                # not enought players - postpone start
+                self.setup_timeout('_auto_start')
+
     def start(self):
         if not self.started:
+            self.cancel_timeout('_auto_start')
             self._new_round()
 
     def _new_round(self):
@@ -186,13 +213,11 @@ class GameRoom(object):
         for player in self.players_active:
             player.ready.clear()
 
-            tornado.ioloop.IOLoop.instance().add_future(
+            IOLoop.instance().add_future(
                 player.ready.wait(), self._player_ready
             )
 
-        self._future_round = tornado.ioloop.IOLoop.instance().call_later(
-            self.TIMEOUT, self._end_round
-        )
+        self.setup_timeout('_end_round')
 
         self.on_progress.notify_all()
 
@@ -208,10 +233,7 @@ class GameRoom(object):
         if any(self.players_unready):
             return
 
-        if self._future_round:
-            tornado.ioloop.IOLoop.instance().remove_timeout(self._future_round)
-
-            self._future_round = None
+        self.cancel_timeout('_end_round')
 
         if any(self.players_active):
             self._new_round()
@@ -219,6 +241,7 @@ class GameRoom(object):
             # save results
             self.results = self.get_results()
             self.put()
+            self.setup_timeout('_auto_restart')
             self.on_end.notify_all()
 
     def get_results(self):
@@ -234,6 +257,14 @@ class GameRoom(object):
             }
             for player in self.players
         ]
+
+    def _auto_restart(self):
+        self.cancel_timeout('_auto_restart')
+        self._players = {}
+        self.seed = random.getrandbits(128)
+        self.round = 0
+        self.results = None
+        self.setup_timeout('_auto_start')
 
     def add_bot(self):
         subprocess.Popen(
@@ -283,4 +314,10 @@ class DevGameRoom(GameRoom):
             return self.add_player(user)
 
     def start(self):
+        pass
+
+    def setup_timeout(self, timeout_name):
+        pass
+
+    def cancel_timeout(self, timeout_name):
         pass
