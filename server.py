@@ -166,13 +166,68 @@ class GamesHandler(BaseHandler):
         Create new game room.
         """
         data = json.loads(self.request.body.decode())
-        if not data:  # TODO - validate input
-            raise tornado.web.HTTPError(400, 'Wrong data')
+        if not data:
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
 
-        # TODO - limit rooms (5 per user)
+        def get_value(name, types, default=None, minimum=None, maximum=None):
+            if name in data:
+                val = data[name]
+                if not isinstance(val, types):
+                    raise tornado.web.HTTPError(
+                        http.client.BAD_REQUEST,
+                        'Wrong type of {}.'.format(name)
+                    )
+                if isinstance(val, (int, float)):
+                    if minimum and val < minimum:
+                        raise tornado.web.HTTPError(
+                            http.client.BAD_REQUEST,
+                            'Value of {} is too small.'.format(name)
+                        )
+                    if maximum and val > maximum:
+                        raise tornado.web.HTTPError(
+                            http.client.BAD_REQUEST,
+                            'Value of {} is too big.'.format(name)
+                        )
+                if isinstance(val, str):
+                    if minimum and len(val) < minimum:
+                        raise tornado.web.HTTPError(
+                            http.client.BAD_REQUEST,
+                            '{} is too short.'.format(name)
+                        )
+                    if maximum and len(val) > maximum:
+                        raise tornado.web.HTTPError(
+                            http.client.BAD_REQUEST,
+                            '{} is too long.'.format(name)
+                        )
+                return val
+            return default
 
-        data.pop('token', None)
-        game_room = GameRoom(author=self.current_user.login, **data)
+        none = type(None)
+        board_size = get_value('board_size', int, 5, 3, 10)
+        title = get_value('title', (str, none), None, 5, 100)
+        max_players = get_value('max_players', int, 15, 2, 100)
+        auto_start = get_value('auto_start', (int, none), 5, 1, 60)
+        auto_restart = get_value('auto_restart', (int, none), 5, 1, 60)
+        with_bot = get_value('with_bot', bool, False)
+        author = self.current_user.login
+
+        authors = [room.author for room in game_rooms.values()]
+        if not self.current_user.admin and authors.count(author) >= 5:
+            raise tornado.web.HTTPError(
+                http.client.BAD_REQUEST,
+                'Maximum number of rooms per user reached. '
+                'Remove old rooms before creating new ones.'
+            )
+
+        titles = [room.title for room in game_rooms.values()]
+        if not self.current_user.admin and title in titles:
+            raise tornado.web.HTTPError(
+                http.client.BAD_REQUEST,
+                'Title already in use. Use unique title.'
+            )
+
+        game_room = GameRoom(board_size, title, max_players, auto_start,
+                             auto_restart, with_bot, author)
         game_room.put()
         game_rooms[game_room.room_id] = game_room
         self.write({'room_id': game_room.room_id})

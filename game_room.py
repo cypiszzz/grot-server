@@ -50,9 +50,9 @@ class GameRoom(object):
 
             return state
 
-    def __init__(self, _id=None, board_size=5, title=None, max_players=15,
+    def __init__(self, board_size=5, title=None, max_players=15,
                  auto_start=5, auto_restart=5, with_bot=False, author=None,
-                 timestamp=None):
+                 timestamp=None, _id=None):
         self._id = _id
         self.board_size = board_size
         self.title = title or 'Game room {:%y%m%d%H%M}'.format(datetime.now())
