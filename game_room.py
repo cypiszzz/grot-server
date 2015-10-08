@@ -103,6 +103,10 @@ class GameRoom(object):
 
         self._id = GameRoom.collection.save(data)
 
+    def remove(self):
+        if self._id is not None:
+            GameRoom.collection.remove({'_id': self._id})
+
     @property
     def room_id(self):
         return str(self._id) if self._id else None
