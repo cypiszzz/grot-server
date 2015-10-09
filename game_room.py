@@ -22,12 +22,15 @@ class GameRoom(object):
 
     class Player(Game):
 
-        def __init__(self, user, board):
+        def __init__(self, user, alias, allow_multi, board):
             super(GameRoom.Player, self).__init__(board)
 
             self.user = user
+            self.alias = alias
             self.ready = toro.Event()
             self.moved = None
+            self.inactive = False
+            self.allow_multi = allow_multi
 
         def start_move(self, x, y):
             try:
@@ -51,14 +54,29 @@ class GameRoom(object):
 
             return state
 
+        def get_id(self):
+            player_id = str(self.user.id)
+            if self.allow_multi and self.alias:
+                player_id += self.alias
+            return player_id
+
+        def get_name(self):
+            player_name = str(self.user.name)
+            if self.alias:
+                player_name = '{} ({})'.format(player_name, self.alias)
+            return player_name
+
+
     def __init__(self, board_size=5, title=None, max_players=15,
-                 auto_start=5, auto_restart=5, with_bot=False, author=None,
-                 timestamp=None, _id=None, results=None):
+                 auto_start=5, auto_restart=5, with_bot=False,
+                 allow_multi=False, author=None, timestamp=None,
+                 results=None, _id=None):
         self._id = _id
         self.board_size = board_size
         self.title = title or 'Game room {:%Y%m%d%H%M%S}'.format(datetime.now())
         self.max_players = max_players
         self.with_bot = with_bot
+        self.allow_multi = allow_multi
         self.author = author
         self.timestamp = timestamp or datetime.now()
         self.results = results if not auto_start else None
@@ -119,10 +137,12 @@ class GameRoom(object):
     def __lt__(self, other):
         return self.timestamp > other.timestamp
 
-    def __getitem__(self, user):
-        user = user if isinstance(user, str) else str(user.id)
+    def get_player(self, user, alias=''):
+        player_id = user if isinstance(user, str) else str(user.id)
+        if self.allow_multi and alias:
+            player_id += alias
 
-        return self._players[user]
+        return self._players[player_id]
 
     def update_timestamp(self):
         self.timestamp = datetime.now()
@@ -180,11 +200,20 @@ class GameRoom(object):
             if not player.ready.is_set()
         )
 
-    def add_player(self, user):
+    def add_player(self, user, alias=''):
         self.update_timestamp()
         if self.max_players and len(self._players) < self.max_players:
-            player = self.Player(user, Board(self.board_size, self.seed))
-            self._players[str(user.id)] = player
+            player = self.Player(
+                user, alias, self.allow_multi,
+                Board(self.board_size, self.seed)
+            )
+            player_id = player.get_id()
+
+            if player_id in self._players:
+                # deactivate old player
+                self._players[player_id].inactive = True
+
+            self._players[player_id] = player
 
             self.on_change.notify_all()
         else:
@@ -211,6 +240,7 @@ class GameRoom(object):
         if not self.started:
             self.cancel_timeout('_auto_start')
             self._new_round()
+            self.on_change.notify_all()
 
     def _new_round(self):
         self.update_timestamp()
@@ -256,8 +286,8 @@ class GameRoom(object):
 
         return [
             {
-                'id': str(player.user.id),
-                'name': player.user.name,
+                'id': player.get_id(),
+                'name': player.get_name(),
                 'score': player.score,
                 'moves': player.moves,
             }
@@ -313,11 +343,11 @@ class DevGameRoom(GameRoom):
     def players(self):
         return []
 
-    def __getitem__(self, user):
+    def get_player(self, user, alias=''):
         try:
-            return super(DevGameRoom, self).__getitem__(user)
+            return super(DevGameRoom, self).get_player(user, alias)
         except LookupError:
-            return self.add_player(user)
+            return self.add_player(user, alias)
 
     def start(self):
         pass

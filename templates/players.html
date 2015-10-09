@@ -26,8 +26,8 @@
     {% for player in game_room.players %}
     game.players.add([
         new Player({
-            id: '{{ player.user.id }}',
-            name: '{{ player.user.name }}',
+            id: '{{ player.get_id() }}',
+            name: '{{ player.get_name() }}',
         }),
     ]);
     {% end %}

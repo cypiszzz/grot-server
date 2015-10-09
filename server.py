@@ -214,6 +214,7 @@ class GamesHandler(BaseHandler):
         auto_start = get_value('auto_start', (int, none), 5, 1, 60)
         auto_restart = get_value('auto_restart', (int, none), 5, 1, 60)
         with_bot = get_value('with_bot', bool, False)
+        allow_multi = get_value('allow_multi', bool, False)
         author = self.current_user.login
 
         if auto_start:
@@ -237,7 +238,7 @@ class GamesHandler(BaseHandler):
             )
 
         game_room = GameRoom(board_size, title, max_players, auto_start,
-                             auto_restart, with_bot, author)
+                             auto_restart, with_bot, allow_multi, author)
         game_room.put()
         game_rooms[game_room.room_id] = game_room
         self.write({'room_id': game_room.room_id})
@@ -309,19 +310,19 @@ class GameBoardHandler(BaseHandler):
         """
         Join the game, wait for start. Returns first board state.
         """
+        alias = self.get_query_argument('alias', '')
+        if game_room.started:
+            raise tornado.web.HTTPError(http.client.FORBIDDEN)
         try:
-            player = game_room[self.current_user]
-        except LookupError:
-            if game_room.started:
-                raise tornado.web.HTTPError(http.client.FORBIDDEN)
+            player = game_room.add_player(self.current_user, alias)
+        except RoomIsFullException:
+            raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
-            try:
-                player = game_room.add_player(self.current_user)
-            except RoomIsFullException:
-                raise tornado.web.HTTPError(http.client.FORBIDDEN)
-
-        if not game_room.started:
-            yield game_room.on_progress.wait()
+        while not game_room.started:
+            if player.inactive:
+                # if player was replaced by another client, close connection
+                raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+            yield game_room.on_change.wait()
 
         self.write(player.get_state())
 
@@ -332,8 +333,9 @@ class GameBoardHandler(BaseHandler):
         """
         Make a move on board. Returns board state after move.
         """
+        alias = self.get_query_argument('alias', '')
         try:
-            player = game_room[self.current_user]
+            player = game_room.get_player(self.current_user, alias)
         except LookupError:
             raise tornado.web.HTTPError(http.client.FORBIDDEN)
 
@@ -411,7 +413,7 @@ class GamePlayerHandler(BaseHandler):
         Stream player board status.
         """
         try:
-            player = game_room[user]
+            player = game_room.get_player(user)
         except LookupError:
             raise tornado.web.HTTPError(http.client.NOT_FOUND)
 

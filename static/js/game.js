@@ -126,7 +126,7 @@ var ScoreBoard = Backbone.View.extend({
 
 		this.listenTo(this.model.players, 'remove', this.remove);
 		this.listenTo(this.model.players, 'sort', this.render);
-		this.listenTo(this.model.players, 'sync');
+		this.listenTo(this.model.players, 'sync', this.render);
 		this.listenTo(this.model, 'sync', this.renderTimer);
 
 		this.playerEntryHeight = 50;
@@ -144,7 +144,6 @@ var ScoreBoard = Backbone.View.extend({
 	},
 
 	renderTimer: function() {
-		console.log(this.model.attributes.start_in);
 		if(this.model.attributes.start_in !== null) {
 			this.$el.find('#start_in').show();
 		    this.$el.find('#start_in span').text(this.model.attributes.start_in);
@@ -160,7 +159,6 @@ var ScoreBoard = Backbone.View.extend({
 	},
 
 	render: function() {
-
 		for(var i = 0; i < this.model.players.models.length; i++) {
 
 			var player = this.model.players.models[i].attributes;
@@ -174,6 +172,7 @@ var ScoreBoard = Backbone.View.extend({
 				this.$el.find('ul').append($playerEntry);
 			}
 
+			$playerEntry.find('.name').html(player.name);
 			$playerEntry.find('.moves').html(player.moves);
 			$playerEntry.find('.score').html(player.score);
 			$playerEntry.find('.position').html(i + 1);
