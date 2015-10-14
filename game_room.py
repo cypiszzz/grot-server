@@ -4,7 +4,8 @@ import time
 
 from datetime import datetime
 
-import toro
+import tornado.gen
+import tornado.locks
 from tornado.ioloop import IOLoop
 
 import settings
@@ -27,7 +28,7 @@ class GameRoom(object):
 
             self.user = user
             self.alias = alias
-            self.ready = toro.Event()
+            self.ready = tornado.locks.Event()
             self.moved = None
             self.inactive = False
             self.allow_multi = allow_multi
@@ -90,9 +91,9 @@ class GameRoom(object):
         self.seed = random.getrandbits(128)
         self.round = 0
 
-        self.on_change = toro.Condition()
-        self.on_end = toro.Condition()
-        self.on_progress = toro.Condition()
+        self.on_change = tornado.locks.Condition()
+        self.on_end = tornado.locks.Condition()
+        self.on_progress = tornado.locks.Condition()
 
         self._players = {}
         self._future = {}
@@ -100,13 +101,16 @@ class GameRoom(object):
         self.setup_timeout('_auto_start')
 
     @classmethod
+    @tornado.gen.coroutine
     def get_all(cls):
-        return {
-            str(data['_id']): cls(**data)
-            for data in GameRoom.collection.find()
-            if data
-        }
+        result = {}
+        cursor = GameRoom.collection.find()
+        while (yield cursor.fetch_next):
+            game_room = cls(**cursor.next_object())
+            result[game_room.room_id] = game_room
+        return result
 
+    @tornado.gen.coroutine
     def put(self):
         saved = self._id is not None
         data = {
@@ -124,7 +128,7 @@ class GameRoom(object):
         if saved:
             data['_id'] = self._id
 
-        self._id = GameRoom.collection.save(data)
+        self._id = yield GameRoom.collection.save(data)
 
     def remove(self):
         if self._id is not None:
@@ -223,7 +227,8 @@ class GameRoom(object):
         if self.with_bot and 'stxnext' not in player_logins:
             self.add_bot()
 
-        if len(self._players) == self.max_players and self.auto_start:
+        if len(self._players) == self.max_players and \
+           self._delays['_auto_start']:
             self.start()
 
         return player

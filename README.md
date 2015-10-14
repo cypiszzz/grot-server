@@ -4,16 +4,14 @@ GROT
 Requirements
 ------------
 
-* python3
+* Python 3.5
 * [tornadoweb](http://www.tornadoweb.org/)
-* [toro](http://toro.readthedocs.org/)
 * [mongodb](http://www.mongodb.org/)
-* [pymongo](http://api.mongodb.org/python/current/)
 
 Install
 -------
 
-	$ mkvirtualenv grot-server -p /usr/bin/python3.4
+	$ mkvirtualenv grot-server -p /usr/bin/python3.5
 	$ pip3 install -r requirements.txt
 	$ mkdir -p var/db
 	$ mkdir -p var/log

@@ -1,6 +1,10 @@
+import motor
 import pymongo
+import uuid
 
-db = pymongo.MongoClient().grot
+DEBUG = False
+
+db = motor.MotorClient().grot
 
 db['users'].ensure_index([
     ('token', pymongo.HASHED),
@@ -13,6 +17,8 @@ db['users'].ensure_index([
 ADMINS = (
     'sargo',
 )
+
+COOKIE_SECRET = str(uuid.getnode())
 
 GH_OAUTH_CLIENT_ID = ''
 GH_OAUTH_CLIENT_SECRET = ''

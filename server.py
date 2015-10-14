@@ -3,8 +3,6 @@ import http.client
 import json
 import logging
 import re
-import requests
-import uuid
 
 import tornado.escape
 import tornado.gen
@@ -21,7 +19,7 @@ log = logging.getLogger('grot-server')
 
 
 DEV_GAME_ROOM = DevGameRoom(board_size=5)
-game_rooms = GameRoom.get_all()
+game_rooms = {}
 
 
 def user(handler):
@@ -31,7 +29,7 @@ def user(handler):
     @functools.wraps(handler)
     def wrapper(self, *args, **kwargs):
         if self.current_user is None:
-            raise tornado.web.HTTPError(http.client.UNAUTHORIZED)
+            raise tornado.web.HTTPError(http.client.UNAUTHORIZED.value)
         return handler(self, *args, **kwargs)
 
     return wrapper
@@ -44,7 +42,7 @@ def room_owner(handler):
     @user
     def wrapper(self, game_room, *args, **kwargs):
         if game_room.author != self.current_user.login:
-            raise tornado.web.HTTPError(http.client.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
 
         return handler(self, game_room, *args, **kwargs)
 
@@ -63,7 +61,7 @@ def game_room(handler):
             else:
                 game_room = game_rooms[room_id]
         except KeyError:
-            raise tornado.web.HTTPError(http.client.NOT_FOUND)
+            raise tornado.web.HTTPError(http.client.NOT_FOUND.value)
         else:
             return handler(self, game_room, *args, **kwargs)
 
@@ -72,7 +70,8 @@ def game_room(handler):
 
 class BaseHandler(tornado.web.RequestHandler):
 
-    def get_current_user(self):
+    @tornado.gen.coroutine
+    def prepare(self):
         """
         Search for token in GET, POST or cookie. Get User object by token.
         """
@@ -87,7 +86,8 @@ class BaseHandler(tornado.web.RequestHandler):
                 token = data['token']
             except (ValueError, KeyError):
                 pass
-        return User.get(token)
+
+        self.current_user = yield User.get(token)
 
 
 class IndexHandler(BaseHandler):
@@ -140,10 +140,10 @@ class OAuthHandler(BaseHandler):
         user_data = json.loads(resp.body.decode('utf8'))
 
         login = user_data['login']
-        user = User.get(login=login)
+        user = yield User.get(login=login)
         if not user:
             user = User(login, data=user_data, gh_token=access_token)
-            user.put()
+            yield user.put()
 
         self.set_secure_cookie('token', user.token)
         self.redirect('/')
@@ -165,6 +165,7 @@ class GamesHandler(BaseHandler):
             'games': game_rooms.keys()
         })
 
+    @tornado.gen.coroutine
     @user
     def post(self):
         """
@@ -172,36 +173,36 @@ class GamesHandler(BaseHandler):
         """
         data = json.loads(self.request.body.decode())
         if not data:
-            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST.value)
 
         def get_value(name, types, default=None, minimum=None, maximum=None):
             if name in data:
                 val = data[name]
                 if not isinstance(val, types):
                     raise tornado.web.HTTPError(
-                        http.client.BAD_REQUEST,
+                        http.client.BAD_REQUEST.value,
                         'Wrong type of {}.'.format(name)
                     )
                 if isinstance(val, (int, float)):
                     if minimum and val < minimum:
                         raise tornado.web.HTTPError(
-                            http.client.BAD_REQUEST,
+                            http.client.BAD_REQUEST.value,
                             'Value of {} is too small.'.format(name)
                         )
                     if maximum and val > maximum:
                         raise tornado.web.HTTPError(
-                            http.client.BAD_REQUEST,
+                            http.client.BAD_REQUEST.value,
                             'Value of {} is too big.'.format(name)
                         )
                 if isinstance(val, str):
                     if minimum and len(val) < minimum:
                         raise tornado.web.HTTPError(
-                            http.client.BAD_REQUEST,
+                            http.client.BAD_REQUEST.value,
                             '{} is too short.'.format(name)
                         )
                     if maximum and len(val) > maximum:
                         raise tornado.web.HTTPError(
-                            http.client.BAD_REQUEST,
+                            http.client.BAD_REQUEST.value,
                             '{} is too long.'.format(name)
                         )
                 return val
@@ -225,7 +226,7 @@ class GamesHandler(BaseHandler):
         authors = [room.author for room in game_rooms.values()]
         if not self.current_user.admin and authors.count(author) >= 5:
             raise tornado.web.HTTPError(
-                http.client.BAD_REQUEST,
+                http.client.BAD_REQUEST.value,
                 'Maximum number of rooms per user reached. '
                 'Remove old rooms before creating new ones.'
             )
@@ -233,13 +234,13 @@ class GamesHandler(BaseHandler):
         titles = [room.title for room in game_rooms.values()]
         if not self.current_user.admin and title in titles:
             raise tornado.web.HTTPError(
-                http.client.BAD_REQUEST,
+                http.client.BAD_REQUEST.value,
                 'Title already in use. Use unique title.'
             )
 
         game_room = GameRoom(board_size, title, max_players, auto_start,
                              auto_restart, with_bot, allow_multi, author)
-        game_room.put()
+        yield game_room.put()
         game_rooms[game_room.room_id] = game_room
         self.write({'room_id': game_room.room_id})
 
@@ -260,7 +261,7 @@ class GameHandler(BaseHandler):
                 game_room=game_room,
                 user=self.current_user,
             )
-            raise tornado.gen.Return()
+            return
 
         while True:
             self.write({
@@ -312,16 +313,16 @@ class GameBoardHandler(BaseHandler):
         """
         alias = self.get_query_argument('alias', '')
         if game_room.started:
-            raise tornado.web.HTTPError(http.client.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
         try:
             player = game_room.add_player(self.current_user, alias)
         except RoomIsFullException:
-            raise tornado.web.HTTPError(http.client.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
 
         while not game_room.started:
             if player.inactive:
                 # if player was replaced by another client, close connection
-                raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+                raise tornado.web.HTTPError(http.client.BAD_REQUEST.value)
             yield game_room.on_change.wait()
 
         self.write(player.get_state())
@@ -337,10 +338,10 @@ class GameBoardHandler(BaseHandler):
         try:
             player = game_room.get_player(self.current_user, alias)
         except LookupError:
-            raise tornado.web.HTTPError(http.client.FORBIDDEN)
+            raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
 
         if not game_room.started or game_room.ended or not player.is_active():
-            raise tornado.web.HTTPError(http.client.METHOD_NOT_ALLOWED)
+            raise tornado.web.HTTPError(http.client.METHOD_NOT_ALLOWED.value)
 
         try:
             data = json.loads(self.request.body.decode())
@@ -352,10 +353,10 @@ class GameBoardHandler(BaseHandler):
             TypeError,
             ValueError,
         ):
-            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST.value)
 
         if not 0 <= x < player.board.size or not 0 <= y < player.board.size:
-            raise tornado.web.HTTPError(http.client.BAD_REQUEST)
+            raise tornado.web.HTTPError(http.client.BAD_REQUEST.value)
 
         if player.ready.is_set():
             yield game_room.on_progress.wait()
@@ -381,7 +382,7 @@ class GamePlayersHandler(BaseHandler):
         """
         if 'html' in self.request.headers.get('Accept', 'html'):
             self.render('templates/players.html', game_room=game_room)
-            raise tornado.gen.Return()
+            return
 
         while True:
             self.write({
@@ -396,7 +397,7 @@ class GamePlayersHandler(BaseHandler):
 
             if game_room.ended:
                 self.set_status(http.client.NOT_MODIFIED)
-                raise tornado.gen.Return()
+                return
 
             yield game_room.on_change.wait()
 
@@ -415,7 +416,7 @@ class GamePlayerHandler(BaseHandler):
         try:
             player = game_room.get_player(user)
         except LookupError:
-            raise tornado.web.HTTPError(http.client.NOT_FOUND)
+            raise tornado.web.HTTPError(http.client.NOT_FOUND.value)
 
         while True:
             self.write(player.get_state(game_room.started))
@@ -427,9 +428,8 @@ class GamePlayerHandler(BaseHandler):
             self.clear()
 
             if not player.is_active():
-                self.set_status(http.client.NOT_MODIFIED)
-
-                raise tornado.gen.Return()
+                self.set_status(http.client.NOT_MODIFIED.value)
+                return
 
             if game_room.started and not player.ready.is_set():
                 yield player.ready.wait()
@@ -448,11 +448,16 @@ application = tornado.web.Application(
         (r'/games/([0-9a-f]{24})/players/?', GamePlayersHandler),
         (r'/games/([0-9a-f]{24})/players/(\w+)', GamePlayerHandler),
     ],
-    debug=True,
-    cookie_secret=str(uuid.getnode()),
+    debug=settings.DEBUG,
+    cookie_secret=settings.COOKIE_SECRET,
+    db=settings.db,
 )
 
 if __name__ == '__main__':
     log.warn('Starting server http://127.0.0.1:8080')
     application.listen(8080)
+    tornado.ioloop.IOLoop.instance().add_future(
+        GameRoom.get_all(),
+        lambda future: game_rooms.update(future.result())
+    )
     tornado.ioloop.IOLoop.instance().start()

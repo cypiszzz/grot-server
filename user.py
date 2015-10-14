@@ -2,6 +2,8 @@ import email.mime.text
 import uuid
 import multiprocessing.pool
 
+import tornado.gen
+
 import settings
 
 
@@ -30,6 +32,7 @@ class User(object):
         return self.login in settings.ADMINS
 
     @classmethod
+    @tornado.gen.coroutine
     def get(cls, token=None, login=None):
         query = {}
         if token:
@@ -40,9 +43,10 @@ class User(object):
         if not query:
             return None
 
-        user = User.collection.find_one(query)
+        user = yield User.collection.find_one(query)
         return cls(**user) if user else None
 
+    @tornado.gen.coroutine
     def put(self):
         saved = self.id is not None
         user = {
@@ -55,4 +59,4 @@ class User(object):
         if saved:
             user['_id'] = self.id
 
-        self.id = User.collection.save(user)
+        self.id = yield User.collection.save(user)
