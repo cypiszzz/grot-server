@@ -4,8 +4,8 @@
     <h2>Games</h2>
 
     <ul>
-    {% for i, game in games %}
-        <li><a href="/games/{{ i }}">{{ i }}</a></li>
+    {% for game_room in rooms %}
+        <li><a href="/games/{{ game_room.room_id }}">{{ game_room.title }}</a> by {{ game_room.author }}</li>
     {% end %}
     </ul>
 {% end %}

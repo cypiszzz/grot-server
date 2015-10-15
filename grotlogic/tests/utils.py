@@ -5,6 +5,7 @@ DIRECTION_MAP = {
     'v': 'down',
     'O': None,
 }
+LABELS = {v: k for k, v in DIRECTION_MAP.items()}
 
 
 def set_fields_directions(board, field_map, start=0, end=None):
@@ -67,3 +68,11 @@ def assert_fields_directions(board, field_map, start=0, end=None):
                     field.x,
                     field.y,
                 )
+
+
+def print_fields_directions(board):
+    for y in range(board.size):
+        for x in range(board.size):
+            print(LABELS.get(board.get_field(x, y).direction), end='')
+        print('')
+    print('\n')

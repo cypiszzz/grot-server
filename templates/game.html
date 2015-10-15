@@ -8,6 +8,15 @@
 
 {% block content %}
 <div class="score-board">
+    <p>
+        {{ game_room.title }}
+        ({{ game_room.room_id }})
+    <p id="start_in">
+        Game will start in <span></span>s
+    </p>
+    <p id="restart_in">
+        Game will be restarted in <span></span>s
+    </p>
     <ul class="clearfix">
         <li class="head clearfix">
             <div class="avatar">&nbsp;</div>
@@ -22,32 +31,22 @@
 
 <script>
     var game = new Game({
-        id: {{ game.id }}
+        id: '{{ game_room.room_id }}'
     });
     var scoreboard = new ScoreBoard({
         model: game,
-        el: $('.score-board ul'),
+        el: $('.score-board'),
     });
 
     game.players.reset([
-        {% for player in game.players %}
+        {% for player in game_room.players %}
         new Player({
-            id: '{{ player.user.id }}',
-            name: '{{ player.user.name }}',
+            id: '{{ player.get_id() }}',
+            name: '{{ player.get_name() }}',
             score: '{{ player.score }}',
             moves: '{{ player.moves }}',
         }),
         {% end %}
     ]);
-
-    {% if user and user.admin %}
-    $(function() {
-        $('.top h1').click(function() {
-            $.ajax({
-                type: 'PUT'
-            });
-        });
-    });
-    {% end %}
 </script>
 {% end %}

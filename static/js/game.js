@@ -37,7 +37,7 @@ var Synchronize = {
 				} else {
 					model._fetching = null;
 
-					_.delay(_.bind(model._fetch, model), Synchronize.RETRY);
+					_.delay(_.bind(model._fetch, model), Synchronize.RETRY*15);
 				}
 			},
 			'error': function(model, response, options) {
@@ -56,8 +56,19 @@ var Game = Backbone.Model.extend({
 		this.players = new Players([], {
 			'game': this
 		});
+		this.start_in = null;
+		this.restart_in = null;
 	},
+
+	parse: function(response, options) {
+		// not modified or empty
+		if (_.isUndefined(response) || _.isEmpty(response)) {
+			return this;
+		}
+		return response;
+	}
 });
+_.extend(Game.prototype, Synchronize);
 
 var Player = Backbone.Model.extend({
 
@@ -115,7 +126,8 @@ var ScoreBoard = Backbone.View.extend({
 
 		this.listenTo(this.model.players, 'remove', this.remove);
 		this.listenTo(this.model.players, 'sort', this.render);
-		this.listenTo(this.model.players, 'sync');
+		this.listenTo(this.model.players, 'sync', this.render);
+		this.listenTo(this.model, 'sync', this.renderTimer);
 
 		this.playerEntryHeight = 50;
 		this.columnWidth = 400;
@@ -131,8 +143,22 @@ var ScoreBoard = Backbone.View.extend({
 		this.$el.find('#player_' + model.id).remove();
 	},
 
-	render: function() {
+	renderTimer: function() {
+		if(this.model.attributes.start_in !== null) {
+			this.$el.find('#start_in').show();
+		    this.$el.find('#start_in span').text(this.model.attributes.start_in);
+		} else {
+			this.$el.find('#start_in').hide();
+		}
+		if(this.model.attributes.restart_in !== null) {
+			this.$el.find('#restart_in').show();
+		    this.$el.find('#restart_in span').text(this.model.attributes.restart_in);
+		} else {
+			this.$el.find('#restart_in').hide();
+		}
+	},
 
+	render: function() {
 		for(var i = 0; i < this.model.players.models.length; i++) {
 
 			var player = this.model.players.models[i].attributes;
@@ -143,9 +169,10 @@ var ScoreBoard = Backbone.View.extend({
 				$playerEntry = $(this.template({
 					player: player
 				}));
-				this.$el.append($playerEntry);
+				this.$el.find('ul').append($playerEntry);
 			}
 
+			$playerEntry.find('.name').html(player.name);
 			$playerEntry.find('.moves').html(player.moves);
 			$playerEntry.find('.score').html(player.score);
 			$playerEntry.find('.position').html(i + 1);
@@ -163,9 +190,9 @@ var ScoreBoard = Backbone.View.extend({
 		}
 
 		if(this.model.players.models.length < this.playersInColumn + 1) {
-			this.$el.removeClass('two-columns');
+			this.$el.find('ul').removeClass('two-columns');
 		} else {
-			this.$el.addClass('two-columns');
+			this.$el.find('ul').addClass('two-columns');
 		}
 	}
 });

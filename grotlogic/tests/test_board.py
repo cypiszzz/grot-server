@@ -127,7 +127,6 @@ class BoardTestCase(TestCase):
             <OvOO
             '''
         )
-
         self.board.lower_fields()
         assert_fields_directions(
             self.board,

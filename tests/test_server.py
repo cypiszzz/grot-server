@@ -4,7 +4,6 @@ import unittest.mock
 import importlib
 import http.client
 
-import game
 import server
 
 
@@ -23,53 +22,26 @@ class UserTestCase(GrotTestCase):
         user.configure_mock(**{
             'get.return_value': user,
             'id': 1337,
-            'name': 'STXNext',
+            'login': 'stxnext',
             'token': '53CR3T',
+            'name': 'STXNext',
         })
 
         def callback(response):
             response = response.body.decode()
 
-            self.assertIn('id: \'{}\''.format(user.id), response)
-            self.assertIn('name: \'{}\''.format(user.name), response)
+            self.assertIn("id: '{}'".format(user.id), response)
+            self.assertIn("name: '{}'".format(user.name), response)
             self.stop()
 
         self.http_client.fetch(
-            self.get_url('/games/1/board?token={}'.format(user.token))
+            self.get_url('/games/2/board?token={}'.format(user.token))
         )
 
         self.io_loop.call_later(
             1,
             lambda: self.http_client.fetch(
-                self.get_url('/games/1'),
-                callback,
-            )
-        )
-
-        self.wait()
-
-    @unittest.mock.patch('server.User', autospec=True)
-    def test_local(self, user):
-        user.configure_mock(**{
-            'get.return_value': None,
-            'name': 'LOCAL',
-        })
-
-        def callback(response):
-            response = response.body.decode()
-
-            self.assertIn('id: \'{}\''.format(user.name), response)
-            self.assertIn('name: \'{}\''.format(user.name), response)
-            self.stop()
-
-        self.http_client.fetch(
-            self.get_url('/games/1/board?token={}'.format(user.name))
-        )
-
-        self.io_loop.call_later(
-            1,
-            lambda: self.http_client.fetch(
-                self.get_url('/games/1'),
+                self.get_url('/games/2'),
                 callback,
             )
         )
@@ -83,7 +55,7 @@ class UserTestCase(GrotTestCase):
                 'admin': False,
             })
 
-            response = self.fetch('/games/1', method='DELETE')
+            response = self.fetch('/games/2', method='PUT', body="")
 
             self.assertEqual(response.code, http.client.FORBIDDEN)
 
@@ -93,7 +65,7 @@ class UserTestCase(GrotTestCase):
                 'admin': True,
             })
 
-            response = self.fetch('/games/1', method='DELETE')
+            response = self.fetch('/games/2', method='PUT', body="")
 
             self.assertEqual(response.code, http.client.OK)
 
@@ -116,18 +88,18 @@ class BoardTestCase(GrotTestCase):
         def callback(response):
             response = response.body.decode()
 
-            self.assertIn('id: \'{}\''.format(self.user.id), response)
-            self.assertIn('name: \'{}\''.format(self.user.name), response)
+            self.assertIn("id: '{}'".format(self.user.id), response)
+            self.assertIn("name: '{}'".format(self.user.name), response)
             self.stop()
 
         self.http_client.fetch(
-            self.get_url('/games/1/board?token={}'.format(self.user.token))
+            self.get_url('/games/2/board?token={}'.format(self.user.token))
         )
 
         self.io_loop.call_later(
             1,
             lambda: self.http_client.fetch(
-                self.get_url('/games/1'),
+                self.get_url('/games/2'),
                 callback,
             )
         )
@@ -144,15 +116,19 @@ class BoardTestCase(GrotTestCase):
         self.test_join()
 
         self.http_client.fetch(
-            self.get_url('/games/1/board?token={}'.format(self.user.token))
+            self.get_url('/games/2/board?token={}'.format(self.user.token))
         )
 
         self.io_loop.call_later(
             1,
             lambda: self.http_client.fetch(
-                self.get_url('/games/1'),
+                self.get_url('/games/2'),
                 callback,
             )
         )
 
         self.wait()
+
+
+if __name__ == '__main__':
+    unittest.main()

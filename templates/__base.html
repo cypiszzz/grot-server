@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Grot</title>
+    <title>GROT</title>
 
     <link rel="stylesheet" type="text/css" href="/static/css/main.css"></link>
 
@@ -11,35 +11,17 @@
 
 <body>
     <div class="top">
-        <img class="logo" src="/static/img/grot-logo.png">
-        <h1>GROT - Score Board</h1>
+        <div class="top_box">
+            <h1>GROT</h1>
+            <img id="by_stxnext" src="/static/img/by_stxnext.png">
+        </div>
     </div>
     <div class="container">
-        <div class="column left marketing">
-            <h3>• We build agile teams which delivery software!</h3>
-            <h3>• We work for clients from UK & USA!</h3>
-            <h3>• 1st Polish company on PyCon US!</h3>
-            <h3>• 1st Polish company on Europython!</h3>
-            <h3>• The only company sponsoring PyCon PL since the 1st edition in 2008!</h3>
-            <h3>• We love Agile & Python!</h3>
-            <h3>• The largest Python Software House in Europe!</h3>
-            <h3>• Over 120 employees - Python devs, front-end, QA, Scrum Masters, Product Owners & management!</h3>
-            <h3>• Based in Poznan, Wroclaw & Pila!</h3>
-            <h3>• Sky is the limit!</h3>
-            <h3>• SuperHeroes teams!</h3>
-            <div class="hero"></div>
-        </div>
         <div class="column center">
             <div class="main">
                 {% block content %}{% end %}
             </div>
         </div>
-        <div class="column right">
-            <div class="twitter-wrapper">
-                <a class="twitter-timeline" href="https://twitter.com/search?q=%23stxnext+OR+%23grot+OR+%23PyConPL" data-widget-id="521740789655674882">Twitter loading ...</a>
-            </div>
-        </div>
     </div>
-    <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
 </body>
 </html>

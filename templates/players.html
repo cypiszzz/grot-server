@@ -10,29 +10,24 @@
 <h2>Players</h2>
 
 <div id="player1">
-    <select></select>
-    <div></div>
-</div>
-
-<div id="player2">
-    <select></select>
+    <select><option value="">-- select --</option></select>
     <div></div>
 </div>
 
 <script>
     var game = new Game({
-        id: {{ game.id }}
+        id: '{{ game_room.room_id }}'
     });
 
     game.players.on('add', function(model, collection, options) {
         $('select').append($('<option>').val(model.id).text(model.get("name")));
     });
 
-    {% for player in game.players %}
+    {% for player in game_room.players %}
     game.players.add([
         new Player({
-            id: '{{ player.user.id }}',
-            name: '{{ player.user.name }}',
+            id: '{{ player.get_id() }}',
+            name: '{{ player.get_name() }}',
         }),
     ]);
     {% end %}
@@ -41,16 +36,9 @@
         collection: game.players,
         el: $('div#player1 div'),
     })
-    var player2 = new PlayerBoard({
-        collection: game.players,
-        el: $('div#player2 div'),
-    })
 
     $('div#player1 select').on('change', function(ev) {
         player1.show(game.players.get(ev.target.value));
-    })
-    $('div#player2 select').on('change', function(ev) {
-        player2.show(game.players.get(ev.target.value));
     })
 </script>
 {% end %}

@@ -56,14 +56,14 @@ class FieldTestCase(TestCase):
     def test_get_state(self):
         self.field.points = 4
         self.field.direction = 'right'
-        self.assertEqual(
+        self.assertDictEqual(
             self.field.get_state(),
-            {'points': 4, 'direction': 'right'},
+            {'points': 4, 'direction': 'right', 'x': 0, 'y': 0},
         )
 
         self.field.points = 42
         self.field.direction = 'foo'
-        self.assertEqual(
+        self.assertDictEqual(
             self.field.get_state(),
-            {'points': 42, 'direction': 'foo'},
+            {'points': 42, 'direction': 'foo', 'x': 0, 'y': 0},
         )
