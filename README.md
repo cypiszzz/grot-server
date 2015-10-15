@@ -34,6 +34,7 @@ Run
 ### Tests
     
     $ python3 tests/test_server.py
+    $ python3 -m unittest discover
 
 
 Client
