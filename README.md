@@ -22,6 +22,13 @@ Install
 	$ git clone git@github.com:stxnext/grot-stxnext-bot.git
 
 
+Configure GitHub OAuth
+----------------------
+
+Fill in [Register a new OAuth application](https://github.com/settings/applications/new)
+form. Save generated *Client ID* in `GH_OAUTH_CLIENT_ID` and  *Client Secret*
+in `GH_OAUTH_CLIENT_SECRET` in `settings.py` file.
+
 Run
 ---
 
