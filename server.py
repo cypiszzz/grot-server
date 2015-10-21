@@ -13,6 +13,7 @@ from tornado.httpclient import AsyncHTTPClient
 import settings
 from game_room import GameRoom, DevGameRoom, RoomIsFullException
 from user import User
+from result import Result
 
 
 log = logging.getLogger('grot-server')
@@ -20,6 +21,7 @@ log = logging.getLogger('grot-server')
 
 DEV_GAME_ROOM = DevGameRoom(board_size=5)
 game_rooms = {}
+best_results = {}
 
 
 def user(handler):
@@ -69,7 +71,6 @@ def game_room(handler):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-
     @tornado.gen.coroutine
     def prepare(self):
         """
@@ -150,7 +151,6 @@ class OAuthHandler(BaseHandler):
 
 
 class GamesHandler(BaseHandler):
-
     def get(self):
         """
         List of game rooms.
@@ -437,6 +437,20 @@ class GamePlayerHandler(BaseHandler):
                 yield game_room.on_progress.wait()
 
 
+class HallOfFameHandler(BaseHandler):
+
+    @tornado.gen.coroutine
+    def get(self, *args, **kwargs):
+        """
+        Players best results list
+        """
+        if 'html' in self.request.headers.get('Accept', 'html'):
+            return self.render(
+                'templates/hall_of_fame.html',
+                results=sorted(best_results.values())
+            )
+
+
 application = tornado.web.Application(
     [
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static'}),
@@ -447,6 +461,7 @@ application = tornado.web.Application(
         (r'/games/([0-9a-f]{24})/board', GameBoardHandler),
         (r'/games/([0-9a-f]{24})/players/?', GamePlayersHandler),
         (r'/games/([0-9a-f]{24})/players/(\w+)', GamePlayerHandler),
+        (r'/hall-of-fame', HallOfFameHandler)
     ],
     debug=settings.DEBUG,
     cookie_secret=settings.COOKIE_SECRET,
@@ -459,5 +474,9 @@ if __name__ == '__main__':
     tornado.ioloop.IOLoop.instance().add_future(
         GameRoom.get_all(),
         lambda future: game_rooms.update(future.result())
+    )
+    tornado.ioloop.IOLoop.instance().add_future(
+        Result.get_all(),
+        lambda future: best_results.update(future.result())
     )
     tornado.ioloop.IOLoop.instance().start()

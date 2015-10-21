@@ -9,6 +9,7 @@ import tornado.locks
 from tornado.ioloop import IOLoop
 
 import settings
+from result import Result
 from grotlogic.board import Board
 from grotlogic.game import Game
 
@@ -66,7 +67,6 @@ class GameRoom(object):
             if self.alias:
                 player_name = '{} ({})'.format(player_name, self.alias)
             return player_name
-
 
     def __init__(self, board_size=5, title=None, max_players=15,
                  auto_start=5, auto_restart=5, with_bot=False,
@@ -282,6 +282,7 @@ class GameRoom(object):
             # save results
             self.results = self.get_results()
             self.put()
+            self.submit_result()
             self.setup_timeout('_auto_restart')
             self.on_end.notify_all()
 
@@ -298,6 +299,25 @@ class GameRoom(object):
             }
             for player in self.players
         ]
+
+    def submit_result(self):
+        for result in self.get_results():
+            if result['score'] > settings.RESULT_LIST['min_score']:
+                count = yield Result.count()
+
+                if count.result() >= settings.RESULT_LIST['max_size']:
+                    lowest = yield Result.get_last()
+                    if lowest.result() and lowest.score < result['score']:
+                        Result.collection.remove({'_id': lowest['_id']})
+                    else:
+                        return
+
+                data = {
+                    'login': result['name'],
+                    'score': result['score']
+                }
+                result = Result(**data)
+                result.put()
 
     def _auto_restart(self):
         self.cancel_timeout('_auto_restart')

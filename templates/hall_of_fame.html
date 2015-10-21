@@ -1,0 +1,24 @@
+{% extends '__base.html' %}
+
+{% block content %}
+    <h2>Hall of fame</h2>
+
+    <table class="hall-of-fame">
+        <tr>
+            <th>Login</th>
+            <th>Score</th>
+        </tr>
+        {% if results %}
+            {% for item in results %}
+                <tr>
+                    <td>{{ item.login }}</td>
+                    <td>{{ item.score }}</td>
+                </tr>
+            {% end %}
+        {% else %}
+            <tr>
+                <td colspan="2">no results</td>
+            </tr>
+        {% end %}
+    </table>
+{% end %}
