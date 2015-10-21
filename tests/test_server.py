@@ -61,21 +61,22 @@ class UserTestCase(GrotTestCase):
         self.assertDictEqual({'room_id': ID}, response)
 
         args, kwargs = save_method.call_args
-        to_save = kwargs['to_save']
-        to_save.pop('timestamp')
-        self.assertDictEqual(
-            {
-                'author': LOGIN,
-                'auto_restart': 300,
-                'auto_start': 300,
-                'board_size': 5,
-                'max_players': 15,
-                'results': None,
-                'title': data['title'],
-                'with_bot': False
-            },
-            to_save,
+        save_data = kwargs['to_save']
+        self.assertAlmostEqual(
+            save_data.pop('timestamp'), datetime.datetime.now(),
+            delta=datetime.timedelta(seconds=1)
         )
+        expected = {
+            'author': LOGIN,
+            'auto_restart': 300,
+            'auto_start': 300,
+            'board_size': 5,
+            'max_players': 15,
+            'results': None,
+            'title': data['title'],
+            'with_bot': False
+        }
+        self.assertDictEqual(expected, save_data)
 
 if __name__ == '__main__':
     unittest.main()
