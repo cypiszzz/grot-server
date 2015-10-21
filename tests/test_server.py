@@ -1,10 +1,25 @@
-import tornado.testing
+import datetime
+import importlib
+import json
 import unittest
 import unittest.mock
-import importlib
-import http.client
+
+import tornado.testing
+from tornado.concurrent import Future
+from tornado.httpclient import AsyncHTTPClient
 
 import server
+
+
+ID = '000000000000000000000000'
+TOKEN = '00000000-0000-0000-0000-000000000000'
+LOGIN = 'stxnext'
+
+
+def future_wrap(value):
+    future = Future()
+    future.set_result(value)
+    return future
 
 
 class GrotTestCase(tornado.testing.AsyncHTTPTestCase):
@@ -17,118 +32,50 @@ class GrotTestCase(tornado.testing.AsyncHTTPTestCase):
 
 class UserTestCase(GrotTestCase):
 
-    @unittest.mock.patch('server.User', autospec=True)
-    def test_token(self, user):
-        user.configure_mock(**{
-            'get.return_value': user,
-            'id': 1337,
-            'login': 'stxnext',
-            'token': '53CR3T',
+    @unittest.mock.patch(
+        'server.GameRoom.collection.save',
+        return_value=future_wrap(ID)
+    )
+    @unittest.mock.patch(
+        'server.User.collection.find_one',
+        return_value=future_wrap({
+            '_id': ID,
+            'login': LOGIN,
+            'token': TOKEN,
             'name': 'STXNext',
         })
-
-        def callback(response):
-            response = response.body.decode()
-
-            self.assertIn("id: '{}'".format(user.id), response)
-            self.assertIn("name: '{}'".format(user.name), response)
-            self.stop()
-
-        self.http_client.fetch(
-            self.get_url('/games/2/board?token={}'.format(user.token))
+    )
+    @tornado.testing.gen_test(timeout=100000)
+    def test_new_game_room(self, user_get, save_method):
+        data = {
+            'title': 'Test game_room',
+        }
+        client = AsyncHTTPClient(self.io_loop)
+        response = yield client.fetch(
+            self.get_url('/games?token={}'.format(TOKEN)),
+            method='POST',
+            body=json.dumps(data),
         )
+        response = json.loads(response.body.decode())
 
-        self.io_loop.call_later(
-            1,
-            lambda: self.http_client.fetch(
-                self.get_url('/games/2'),
-                callback,
-            )
+        self.assertDictEqual({'room_id': ID}, response)
+
+        args, kwargs = save_method.call_args
+        to_save = kwargs['to_save']
+        to_save.pop('timestamp')
+        self.assertDictEqual(
+            {
+                'author': LOGIN,
+                'auto_restart': 300,
+                'auto_start': 300,
+                'board_size': 5,
+                'max_players': 15,
+                'results': None,
+                'title': data['title'],
+                'with_bot': False
+            },
+            to_save,
         )
-
-        self.wait()
-
-    def test_admin(self):
-        with unittest.mock.patch('server.User', autospec=True) as user:
-            user.configure_mock(**{
-                'get.return_value': user,
-                'admin': False,
-            })
-
-            response = self.fetch('/games/2', method='PUT', body="")
-
-            self.assertEqual(response.code, http.client.FORBIDDEN)
-
-        with unittest.mock.patch('server.User', autospec=True) as user:
-            user.configure_mock(**{
-                'get.return_value': user,
-                'admin': True,
-            })
-
-            response = self.fetch('/games/2', method='PUT', body="")
-
-            self.assertEqual(response.code, http.client.OK)
-
-
-class BoardTestCase(GrotTestCase):
-
-    def setUp(self):
-        super(BoardTestCase, self).setUp()
-
-        self.user_patch = unittest.mock.patch('server.User', autospec=True)
-        self.user = self.user_patch.start()
-        self.user.configure_mock(**{
-            'get.return_value': self.user,
-            'id': 1337,
-            'name': 'STXNext',
-            'token': '53CR3T',
-        })
-
-    def test_join(self):
-        def callback(response):
-            response = response.body.decode()
-
-            self.assertIn("id: '{}'".format(self.user.id), response)
-            self.assertIn("name: '{}'".format(self.user.name), response)
-            self.stop()
-
-        self.http_client.fetch(
-            self.get_url('/games/2/board?token={}'.format(self.user.token))
-        )
-
-        self.io_loop.call_later(
-            1,
-            lambda: self.http_client.fetch(
-                self.get_url('/games/2'),
-                callback,
-            )
-        )
-
-        self.wait()
-
-    def test_rejoin(self):
-        def callback(response):
-            response = response.body.decode()
-
-            self.assertEqual(response.count('new Player('), 1)
-            self.stop()
-
-        self.test_join()
-
-        self.http_client.fetch(
-            self.get_url('/games/2/board?token={}'.format(self.user.token))
-        )
-
-        self.io_loop.call_later(
-            1,
-            lambda: self.http_client.fetch(
-                self.get_url('/games/2'),
-                callback,
-            )
-        )
-
-        self.wait()
-
 
 if __name__ == '__main__':
     unittest.main()

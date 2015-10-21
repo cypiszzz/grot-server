@@ -128,7 +128,7 @@ class GameRoom(object):
         if saved:
             data['_id'] = self._id
 
-        self._id = yield GameRoom.collection.save(data)
+        self._id = yield GameRoom.collection.save(to_save=data)
 
     def remove(self):
         if self._id is not None:
