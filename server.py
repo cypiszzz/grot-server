@@ -444,11 +444,9 @@ class HallOfFameHandler(BaseHandler):
         """
         Players best results list
         """
+        results = yield Result.get_best()
         if 'html' in self.request.headers.get('Accept', 'html'):
-            return self.render(
-                'templates/hall_of_fame.html',
-                results=sorted(best_results.values())
-            )
+            return self.render('templates/hall_of_fame.html', results=results)
 
 
 application = tornado.web.Application(
@@ -474,9 +472,5 @@ if __name__ == '__main__':
     tornado.ioloop.IOLoop.instance().add_future(
         GameRoom.get_all(),
         lambda future: game_rooms.update(future.result())
-    )
-    tornado.ioloop.IOLoop.instance().add_future(
-        Result.get_all(),
-        lambda future: best_results.update(future.result())
     )
     tornado.ioloop.IOLoop.instance().start()

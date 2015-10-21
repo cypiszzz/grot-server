@@ -1,6 +1,8 @@
 from datetime import datetime
+
 import pymongo
 import tornado.gen
+from bson.son import SON
 
 import settings
 
@@ -20,12 +22,20 @@ class Result(object):
 
     @classmethod
     @tornado.gen.coroutine
-    def get_all(cls):
-        results = {}
-        cursor = Result.collection.find()
-        while (yield cursor.fetch_next):
-            result = cls(**cursor.next_object())
-            results[result.result_id] = result
+    def get_best(cls):
+        cursor = yield Result.collection.aggregate(
+            [
+                {
+                    '$group': {
+                        '_id': '$login',
+                        'score': {'$max': '$score'}
+                    }
+                },
+                {"$sort": SON([("score", -1), ("_id", -1)])}
+            ],
+            cursor={}
+        )
+        results = yield cursor.to_list(length=100)
         return results
 
     def __lt__(self, other):
@@ -33,22 +43,19 @@ class Result(object):
 
     @classmethod
     @tornado.gen.coroutine
-    def count(cls):
-        return Result.collection.count()
+    def get_last(cls, login):
+        data = yield Result.collection.find_one(
+            {'login': login},
+            sort=[('score', pymongo.DESCENDING)]
+        )
+        return cls(**data) if data else None
 
-    @classmethod
-    def get_last(cls):
-        last = Result.collection.find().sort(
-            'score', pymongo.DESCENDING
-        ).limit(1)
-
-        return last
-
+    @tornado.gen.coroutine
     def put(self):
         data = {
             'login': self.login,
             'score': self.score,
             'date': self.date
         }
-
-        return Result.collection.save(data)
+        result = yield Result.collection.save(data)
+        return result

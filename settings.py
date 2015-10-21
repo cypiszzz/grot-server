@@ -2,7 +2,7 @@ import motor
 import pymongo
 import uuid
 
-DEBUG = False
+DEBUG = True
 
 db = motor.MotorClient().grot
 
@@ -19,8 +19,7 @@ ADMINS = (
 )
 
 RESULT_LIST = {
-    'max_size': 10,
-    'min_score': 1000
+    'min_score': 100
 }
 
 COOKIE_SECRET = str(uuid.getnode())

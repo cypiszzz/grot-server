@@ -11,8 +11,8 @@
         {% if results %}
             {% for item in results %}
                 <tr>
-                    <td>{{ item.login }}</td>
-                    <td>{{ item.score }}</td>
+                    <td>{{ item['_id'] }}</td>
+                    <td>{{ item['score'] }}</td>
                 </tr>
             {% end %}
         {% else %}

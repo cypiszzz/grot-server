@@ -132,7 +132,7 @@ class GameRoom(object):
 
     def remove(self):
         if self._id is not None:
-            GameRoom.collection.remove({'_id': self._id})
+            yield GameRoom.collection.remove({'_id': self._id})
 
     @property
     def room_id(self):
@@ -281,8 +281,8 @@ class GameRoom(object):
         else:
             # save results
             self.results = self.get_results()
-            self.put()
-            self.submit_result()
+            IOLoop.current().spawn_callback(self.put)
+            IOLoop.current().spawn_callback(self.submit_result)
             self.setup_timeout('_auto_restart')
             self.on_end.notify_all()
 
@@ -300,24 +300,18 @@ class GameRoom(object):
             for player in self.players
         ]
 
+    @tornado.gen.coroutine
     def submit_result(self):
         for result in self.get_results():
             if result['score'] > settings.RESULT_LIST['min_score']:
-                count = yield Result.count()
-
-                if count.result() >= settings.RESULT_LIST['max_size']:
-                    lowest = yield Result.get_last()
-                    if lowest.result() and lowest.score < result['score']:
-                        Result.collection.remove({'_id': lowest['_id']})
-                    else:
-                        return
-
-                data = {
-                    'login': result['name'],
-                    'score': result['score']
-                }
-                result = Result(**data)
-                result.put()
+                lowest = yield Result.get_last(result['name'])
+                if lowest is None or lowest.score < result['score']:
+                    result = Result(
+                        login=result['name'],
+                        score=result['score']
+                    )
+                    print(result)
+                    yield result.put()
 
     def _auto_restart(self):
         self.cancel_timeout('_auto_restart')
