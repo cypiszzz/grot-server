@@ -310,7 +310,7 @@ class GameRoom(object):
                         login=result['name'],
                         score=result['score']
                     )
-                    print(result)
+
                     yield result.put()
 
     def _auto_restart(self):
