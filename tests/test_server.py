@@ -1,14 +1,14 @@
+from asyncio import sleep
 import datetime
 import importlib
 import json
-from time import sleep
 import unittest
 import unittest.mock
+import functools
 
 import tornado.testing
 from tornado.concurrent import Future
 from tornado.httpclient import AsyncHTTPClient
-import toro as toro
 from game_room import GameRoom
 
 import server
@@ -102,7 +102,7 @@ class UserTestCase(GrotTestCase):
         'server.game_rooms', {
             ID: GameRoom(
                 _id=ID,
-                author=LOGIN
+                author=LOGIN,
             )
         }
     )
@@ -115,7 +115,7 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test(timeout=1000000)
+    @tornado.testing.gen_test(timeout=2000000)
     def test_join_and_play(self, get_user):
         client = AsyncHTTPClient(self.io_loop)
 
@@ -147,37 +147,36 @@ class UserTestCase(GrotTestCase):
             self.assertTrue(key in game)
             self.assertEqual(game[key], value)
 
-        move_url = self.get_url('/games/{}/board?token={}'.format(ID, TOKEN))
-        moves = [
-            {'x': 3, 'y': 1},
-            {'x': 1, 'y': 2},
-        ]
-
-        def make_move(self):
-            if len(moves) == 0:
-                return
-
-            print('test')
-            move = moves.pop()
-            r = yield client.fetch(
-                move_url,
-                method='POST',
-                body=json.dumps(move),
-                callback=make_move
-            )
-            print(r)
-
-        make_move(self)
-
-        status = yield client.fetch(
-            self.get_url('/games/{}/board?token={}&alias={}'.format(
-                ID, TOKEN, 'tester'
-            )),
-            method='GET'
+        move = yield client.fetch(
+            self.get_url('/games/{}/board?token={}'.format(ID, TOKEN)),
+            method='POST',
+            body=json.dumps({'x': 3, 'y': 1}),
         )
-        print(status)
+        move_result = json.loads(move.body.decode())
+        self.assertTrue('score' in move_result)
 
+        round_result = yield client.fetch(
+            self.get_url('/games/{}'.format(ID)),
+            method='GET',
+            headers={
+                'Accept': 'html'
+            }
+        )
+        self.assertTrue(round_result.code, 200)
 
+        round_result_page = round_result.body.decode()
+
+        self.assertTrue("id: '{}'".format(ID) in round_result_page)
+        self.assertTrue(
+            "score: '{}'".format(move_result['score']) in round_result_page
+        )
+
+        deleted = yield client.fetch(
+            self.get_url('/games/{}?token={}'.format(ID, TOKEN)),
+            method='DELETE',
+        )
+        self.assertEqual(deleted.code, 200)
+        self.assertEqual(len(server.game_rooms), 0)
 
     @unittest.mock.patch(
         'server.game_rooms', {
