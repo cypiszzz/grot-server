@@ -1,18 +1,18 @@
-from asyncio import sleep
 import datetime
 import importlib
 import json
 import unittest
 import unittest.mock
-import functools
 
 import tornado.testing
 from tornado.concurrent import Future
 from tornado.httpclient import AsyncHTTPClient
-from game_room import GameRoom
+from lxml.html import fromstring
+from urllib.parse import urlparse, parse_qs
 
+from game_room import GameRoom
 import server
-from user import User
+import settings
 
 ID = '000000000000000000000001'
 ID_DEV = '000000000000000000000000'
@@ -97,6 +97,56 @@ class UserTestCase(GrotTestCase):
         args, kwargs = remove_method.call_args
         expected = ({'_id': ID},)
         self.assertEqual(expected, args)
+
+    @unittest.mock.patch(
+        'server.game_rooms', {
+            1: GameRoom(author=LOGIN, title='duplicated title'),
+            2: GameRoom(author=LOGIN),
+            3: GameRoom(author=LOGIN),
+            4: GameRoom(author=LOGIN)
+        }
+    )
+    @unittest.mock.patch(
+        'server.User.collection.find_one',
+        return_value=future_wrap({
+            '_id': ID,
+            'login': LOGIN,
+            'token': TOKEN,
+            'name': 'STXNext',
+        })
+    )
+    @tornado.testing.gen_test(timeout=100000)
+    def test_new_game_exceptions(self, user_get):
+        client = AsyncHTTPClient(self.io_loop)
+
+        def new_room(body):
+            return client.fetch(
+                self.get_url('/games?token={}'.format(TOKEN)),
+                method='POST',
+                body=json.dumps(body),
+            )
+
+        bad_params = [
+            {},  # empty post data
+            {'title': 'too large', 'board_size': 15},
+            {'title': 'too small', 'board_size': 1},
+            {'title': 'wrong type', 'board_size': '1'},
+            {'title': 't'},  # too short
+            {'title': 't'.join([str(x) for x in range(0, 101)])},  # too long
+            {'title': 'duplicated title'},
+        ]
+
+        for params in bad_params:
+            with self.assertRaises(tornado.httpclient.HTTPError):
+                response = yield new_room(params)
+                self.assertEqual(response.code, 404)
+
+        server.game_rooms['5'] = GameRoom(author=LOGIN)
+        with self.assertRaises(tornado.httpclient.HTTPError):
+            response = yield new_room({
+                'title': 'rooms limit reached'
+            })
+            self.assertEqual(response.code, 404)
 
     @unittest.mock.patch(
         'server.game_rooms', {
@@ -190,7 +240,7 @@ class UserTestCase(GrotTestCase):
     def test_game_result(self):
         client = AsyncHTTPClient(self.io_loop)
         result = yield client.fetch(
-            self.get_url('/games'.format(ID)),
+            self.get_url('/games'),
             method='GET',
             headers={
                 'Accept': 'html'
@@ -201,6 +251,24 @@ class UserTestCase(GrotTestCase):
         expected = '<a href="/games/{}">'.format(ID)
         self.assertTrue(expected in body_str)
 
+    @tornado.testing.gen_test(timeout=100000)
+    def test_oauth_login(self):
+        client = AsyncHTTPClient(self.io_loop)
+        index_page = yield client.fetch(
+            self.get_url('/gh-oauth'),
+            method='GET',
+        )
+        root = fromstring(index_page.body.decode())
+        auth_url = root.xpath('//a')[0].attrib['href']
+
+        qs = parse_qs(urlparse(auth_url).query)
+        self.assertTrue('client_id' in qs)
+        self.assertEqual(settings.GH_OAUTH_CLIENT_ID, qs['client_id'][0])
+
+        login_form = yield client.fetch(auth_url, method='GET')
+
+        expected_url = 'https://github.com/login?return_to='
+        self.assertEqual(login_form.effective_url[:35], expected_url)
 
 if __name__ == '__main__':
     unittest.main()

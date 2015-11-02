@@ -112,7 +112,7 @@ class OAuthHandler(BaseHandler):
     def get(self):
         gh_code = self.get_query_argument('code', None)
         if not gh_code:
-            self.redirect('/')
+            return self.redirect('/')
 
         pay_load = {
             'client_id': settings.GH_OAUTH_CLIENT_ID,
@@ -131,7 +131,7 @@ class OAuthHandler(BaseHandler):
         )
         access_token = json.loads(resp.body.decode('utf8')).get('access_token', None)
         if not access_token:
-            self.redirect('/')
+            return self.redirect('/')
 
         resp = yield http_client.fetch(
             'https://api.github.com/user?access_token=' + access_token,
