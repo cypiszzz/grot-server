@@ -3,10 +3,11 @@ import importlib
 import json
 import unittest
 import unittest.mock
+from cgitb import reset
 
 import tornado.testing
 from tornado.concurrent import Future
-from tornado.httpclient import AsyncHTTPClient
+from tornado.httpclient import AsyncHTTPClient, HTTPResponse
 from lxml.html import fromstring
 from urllib.parse import urlparse, parse_qs
 
@@ -27,6 +28,10 @@ def future_wrap(value):
 
 
 class GrotTestCase(tornado.testing.AsyncHTTPTestCase):
+
+    def setUp(self):
+        super(GrotTestCase, self).setUp()
+        self.client = AsyncHTTPClient(self.io_loop)
 
     def get_app(self):
         importlib.reload(server)
@@ -58,8 +63,7 @@ class UserTestCase(GrotTestCase):
         data = {
             'title': 'Test game_room',
         }
-        client = AsyncHTTPClient(self.io_loop)
-        response = yield client.fetch(
+        response = yield self.client.fetch(
             self.get_url('/games?token={}'.format(TOKEN)),
             method='POST',
             body=json.dumps(data),
@@ -87,7 +91,7 @@ class UserTestCase(GrotTestCase):
         self.assertDictEqual(expected, save_data)
 
         self.assertEqual(len(server.game_rooms), 1)
-        deleted = yield client.fetch(
+        deleted = yield self.client.fetch(
             self.get_url('/games/{}?token={}'.format(ID, TOKEN)),
             method='DELETE',
         )
@@ -117,10 +121,9 @@ class UserTestCase(GrotTestCase):
     )
     @tornado.testing.gen_test(timeout=100000)
     def test_new_game_exceptions(self, user_get):
-        client = AsyncHTTPClient(self.io_loop)
 
         def new_room(body):
-            return client.fetch(
+            return self.client.fetch(
                 self.get_url('/games?token={}'.format(TOKEN)),
                 method='POST',
                 body=json.dumps(body),
@@ -167,16 +170,14 @@ class UserTestCase(GrotTestCase):
     )
     @tornado.testing.gen_test(timeout=2000000)
     def test_join_and_play(self, get_user):
-        client = AsyncHTTPClient(self.io_loop)
-
         join_result, start_result = yield [
-            client.fetch(
+            self.client.fetch(
                 self.get_url('/games/{}/board?token={}&alias={}'.format(
                     ID, TOKEN, 'tester'
                 )),
                 method='GET'
             ),
-            client.fetch(
+            self.client.fetch(
                 self.get_url('/games/{}'.format(ID)),
                 method='POST',
                 body=json.dumps({'token': TOKEN})
@@ -187,7 +188,7 @@ class UserTestCase(GrotTestCase):
         self.assertEqual(start_result.code, 200)
 
         with self.assertRaises(tornado.httpclient.HTTPError):
-            join_again = yield client.fetch(
+            join_again = yield self.client.fetch(
                 self.get_url('/games/{}/board?token={}'.format(ID, TOKEN)),
                 method='GET',
             )
@@ -204,7 +205,7 @@ class UserTestCase(GrotTestCase):
             self.assertTrue(key in game)
             self.assertEqual(game[key], value)
 
-        move = yield client.fetch(
+        move = yield self.client.fetch(
             self.get_url('/games/{}/board'.format(ID)),
             method='POST',
             body=json.dumps({'x': 3, 'y': 1, 'token': TOKEN}),
@@ -212,7 +213,7 @@ class UserTestCase(GrotTestCase):
         move_result = json.loads(move.body.decode())
         self.assertTrue('score' in move_result)
 
-        round_result = yield client.fetch(
+        round_result = yield self.client.fetch(
             self.get_url('/games/{}'.format(ID)),
             method='GET',
             headers={
@@ -228,7 +229,7 @@ class UserTestCase(GrotTestCase):
             "score: '{}'".format(move_result['score']) in round_result_page
         )
 
-        deleted = yield client.fetch(
+        deleted = yield self.client.fetch(
             self.get_url('/games/{}?token={}'.format(ID, TOKEN)),
             method='DELETE',
         )
@@ -245,8 +246,7 @@ class UserTestCase(GrotTestCase):
     )
     @tornado.testing.gen_test(timeout=100000)
     def test_games_list(self):
-        client = AsyncHTTPClient(self.io_loop)
-        result = yield client.fetch(
+        result = yield self.client.fetch(
             self.get_url('/games'),
             method='GET',
             headers={
@@ -260,10 +260,8 @@ class UserTestCase(GrotTestCase):
 
     @tornado.testing.gen_test(timeout=100000)
     def test_wrong_game(self):
-        client = AsyncHTTPClient(self.io_loop)
-
         with self.assertRaises(tornado.httpclient.HTTPError):
-            response = yield client.fetch(
+            response = yield self.client.fetch(
                 self.get_url('/games/{}'.format(ID)),
                 method='GET'
             )
@@ -271,8 +269,7 @@ class UserTestCase(GrotTestCase):
 
     @tornado.testing.gen_test(timeout=100000)
     def test_oauth_login(self):
-        client = AsyncHTTPClient(self.io_loop)
-        index_page = yield client.fetch(
+        index_page = yield self.client.fetch(
             self.get_url('/gh-oauth'),
             method='GET',
         )
@@ -283,10 +280,46 @@ class UserTestCase(GrotTestCase):
         self.assertTrue('client_id' in qs)
         self.assertEqual(settings.GH_OAUTH_CLIENT_ID, qs['client_id'][0])
 
-        login_form = yield client.fetch(auth_url, method='GET')
+        login_form = yield self.client.fetch(auth_url, method='GET')
 
         expected_url = 'https://github.com/login?return_to='
         self.assertEqual(login_form.effective_url[:35], expected_url)
+
+    @unittest.mock.patch(
+        'server.User.collection.save',
+        return_value=future_wrap(ID)
+    )
+    @unittest.mock.patch(
+        'server.User.collection.find_one',
+        return_value=future_wrap(None)
+    )
+    @unittest.mock.patch(
+        'server.OAuth.get_user_data',
+        return_value=future_wrap({
+            'login': 'Grzegorz Brzeczyszczykiewicz'
+        })
+    )
+    @unittest.mock.patch(
+        'server.OAuth.set_access_token',
+        return_value=future_wrap(None)
+    )
+    @unittest.mock.patch(
+        'server.OAuth.access_token',
+        return_value='1234567890'
+    )
+    @tornado.testing.gen_test(timeout=100000)
+    def test_oauth_first_login(self, access_token, set_access_token, get_user_data, find_user, save_user):
+        yield self.client.fetch(
+            self.get_url('/gh-oauth?code=test'),
+            method='GET',
+        )
+
+        args, kwargs = save_user.call_args
+
+        self.assertEqual(args[0]['login'], 'Grzegorz Brzeczyszczykiewicz')
+        self.assertRegex(args[0]['token'], r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+        self.assertEqual(args[0]['gh_token'], access_token)
+
 
 if __name__ == '__main__':
     unittest.main()
