@@ -21,7 +21,6 @@ log = logging.getLogger('grot-server')
 
 DEV_GAME_ROOM = DevGameRoom(board_size=5)
 game_rooms = {}
-best_results = {}
 
 
 def user(handler):
@@ -71,6 +70,7 @@ def game_room(handler):
 
 
 class BaseHandler(tornado.web.RequestHandler):
+
     @tornado.gen.coroutine
     def prepare(self):
         """
@@ -440,13 +440,18 @@ class GamePlayerHandler(BaseHandler):
 class HallOfFameHandler(BaseHandler):
 
     @tornado.gen.coroutine
-    def get(self, *args, **kwargs):
+    def get(self, board_size='5'):
         """
         Players best results list
         """
-        results = yield Result.get_best()
+        board_size = int(board_size)
+        results = yield Result.get_best(board_size)
         if 'html' in self.request.headers.get('Accept', 'html'):
-            return self.render('templates/hall_of_fame.html', results=results)
+            return self.render(
+                'templates/hall_of_fame.html',
+                results=results,
+                board_size=board_size,
+            )
 
 
 application = tornado.web.Application(
@@ -459,7 +464,8 @@ application = tornado.web.Application(
         (r'/games/([0-9a-f]{24})/board', GameBoardHandler),
         (r'/games/([0-9a-f]{24})/players/?', GamePlayersHandler),
         (r'/games/([0-9a-f]{24})/players/(\w+)', GamePlayerHandler),
-        (r'/hall-of-fame', HallOfFameHandler)
+        (r'/hall-of-fame', HallOfFameHandler),
+        (r'/hall-of-fame/(\d+)', HallOfFameHandler),
     ],
     debug=settings.DEBUG,
     cookie_secret=settings.COOKIE_SECRET,

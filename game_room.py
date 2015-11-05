@@ -303,12 +303,13 @@ class GameRoom(object):
     @tornado.gen.coroutine
     def submit_result(self):
         for result in self.get_results():
-            if result['score'] > settings.RESULT_LIST['min_score']:
-                lowest = yield Result.get_last(result['name'])
+            if result['score'] > settings.MIN_HOF_SCORE:
+                lowest = yield Result.get_last(result['name'], self.board_size)
                 if lowest is None or lowest.score < result['score']:
                     result = Result(
                         login=result['name'],
-                        score=result['score']
+                        score=result['score'],
+                        board_size=self.board_size,
                     )
 
                     yield result.put()

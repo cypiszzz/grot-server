@@ -14,6 +14,7 @@ class Result(object):
         self._id = kwargs.get('_id')
         self.login = kwargs.get('login', 'unknown')
         self.score = kwargs.get('score', 0)
+        self.board_size = kwargs.get('board_size', 5)
         self.date = datetime.now()
 
     @property
@@ -22,13 +23,14 @@ class Result(object):
 
     @classmethod
     @tornado.gen.coroutine
-    def get_best(cls):
+    def get_best(cls, board_size):
         cursor = yield Result.collection.aggregate(
             [
+                {'$match': {'board_size': board_size}},
                 {
                     '$group': {
                         '_id': '$login',
-                        'score': {'$max': '$score'}
+                        'score': {'$max': '$score'},
                     }
                 },
                 {"$sort": SON([("score", -1), ("_id", -1)])}
@@ -43,9 +45,9 @@ class Result(object):
 
     @classmethod
     @tornado.gen.coroutine
-    def get_last(cls, login):
+    def get_last(cls, login, board_size):
         data = yield Result.collection.find_one(
-            {'login': login},
+            {'login': login, 'board_size': board_size},
             sort=[('score', pymongo.DESCENDING)]
         )
         return cls(**data) if data else None
@@ -55,7 +57,8 @@ class Result(object):
         data = {
             'login': self.login,
             'score': self.score,
-            'date': self.date
+            'date': self.date,
+            'board_size': self.board_size,
         }
         result = yield Result.collection.save(data)
         return result
