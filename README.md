@@ -17,7 +17,7 @@ Install
 	$ mkdir -p var/log
 	$ export BOT_TOKEN=`cat /proc/sys/kernel/random/uuid`
 	$ echo "BOT_TOKEN = '$BOT_TOKEN'" >> settings.py
-	$ mongo --eval "db.getSiblingDB('grot').users.insert({'token': '$BOT_TOKEN', 'login': 'stxnext', 'data': {'name': 'STX Next Bot', 'email': 'developer@stxnext.pl'}})"
+	$ python3 db_init.py
 	$ cd ..
 	$ git clone git@github.com:stxnext/grot-stxnext-bot.git
 

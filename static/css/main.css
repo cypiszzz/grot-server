@@ -209,3 +209,49 @@ ol ul {
 .error {
     color: red;
 }
+
+#hall-of-fame table {
+    margin: 10px auto;
+    width: 60%;
+    min-width: 300px;
+    text-align: center;
+}
+
+#hall-of-fame tr th {
+    font-size: 25px;
+}
+
+#hall-of-fame tr td {
+    padding: 8px 0px;
+}
+
+#hall-of-fame tr:nth-child(2n) td {
+    background-color: rgba(0,0,0,0.05);
+}
+
+#hall-of-fame tr:nth-child(2n+1) td {
+    background-color: rgba(0,0,0,0.1);
+}
+
+#hall-of-fame tr:nth-child(2) td {
+    font-size: x-large;
+    font-weight: bold;
+}
+
+#hall-of-fame tr:nth-child(3) td {
+    font-size: large;
+    font-weight: bold;
+}
+
+#hall-of-fame tr:nth-child(4) td {
+    font-size: large;
+}
+
+#hall-of-fame ul {
+    list-style-type: none;
+    padding: 8px;
+}
+
+#hall-of-fame ul, #hall-of-fame li, #hall-of-fame h4 {
+    display: inline;
+}

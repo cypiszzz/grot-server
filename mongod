@@ -1,1 +1,1 @@
-mongod --bind_ip=$IP --dbpath=var/db --nojournal --rest --fork --logpath var/log/mongod.log "$@"
+mongod --bind_ip=$IP --dbpath=var/db --nojournal --rest --httpinterface --fork --logpath var/log/mongod.log "$@"
