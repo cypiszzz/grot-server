@@ -7,6 +7,9 @@ DEBUG = False
 
 ADMINS = (
     'sargo',
+    'AcidWeb',
+    'tlewandowski',
+    'lukaszjagodzinski',
 )
 
 MIN_HOF_SCORE = 100
