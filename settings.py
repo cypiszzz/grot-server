@@ -1,9 +1,8 @@
 import uuid
-
 import motor
 
 
-DEBUG = False
+DEBUG = True
 
 ADMINS = (
     'sargo',

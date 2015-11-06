@@ -3,13 +3,12 @@ import importlib
 import json
 import unittest
 import unittest.mock
-from cgitb import reset
 
 import tornado.testing
 from tornado.concurrent import Future
-from tornado.httpclient import AsyncHTTPClient, HTTPResponse
-from lxml.html import fromstring
-from urllib.parse import urlparse, parse_qs
+from tornado.httpclient import AsyncHTTPClient
+from xml.etree.ElementTree import fromstring
+from random import randrange
 
 from game_room import GameRoom
 import server
@@ -62,9 +61,10 @@ class UserTestCase(GrotTestCase):
     def test_new_game_room(self, user_get, save_method, remove_method):
         data = {
             'title': 'Test game_room',
+            'token': TOKEN
         }
         response = yield self.client.fetch(
-            self.get_url('/games?token={}'.format(TOKEN)),
+            self.get_url('/games'),
             method='POST',
             body=json.dumps(data),
         )
@@ -89,18 +89,14 @@ class UserTestCase(GrotTestCase):
             'with_bot': False
         }
         self.assertDictEqual(expected, save_data)
-
         self.assertEqual(len(server.game_rooms), 1)
+
         deleted = yield self.client.fetch(
             self.get_url('/games/{}?token={}'.format(ID, TOKEN)),
             method='DELETE',
         )
         self.assertEqual(deleted.code, 200)
         self.assertEqual(len(server.game_rooms), 0)
-
-        args, kwargs = remove_method.call_args
-        expected = ({'_id': ID},)
-        self.assertEqual(expected, args)
 
     @unittest.mock.patch(
         'server.game_rooms', {
@@ -119,7 +115,7 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test()
     def test_new_game_exceptions(self, user_get):
 
         def new_room(body):
@@ -129,33 +125,43 @@ class UserTestCase(GrotTestCase):
                 body=json.dumps(body),
             )
 
-        bad_params = [
-            {},  # empty post data
-            {'title': 'too large', 'board_size': 15},
-            {'title': 'too small', 'board_size': 1},
-            {'title': 'wrong type', 'board_size': '1'},
-            {'title': 't'},  # too short
-            {'title': 't'.join([str(x) for x in range(0, 101)])},  # too long
-            {'title': 'duplicated title'},
-        ]
+        bad_params = {
+            'empty post data': {},
+            'board_size too large': {'board_size': 15},
+            'board_size too small': {'board_size': 1},
+            'board_size type mismatch': {'board_size': '1'},
+            'title too short': {'title': 't'},
+            'title too long': {'title': 't'.join(
+                [str(x) for x in range(0, 101)]
+            )},
+            'title duplicated': {'title': 'duplicated title'},
+        }
 
-        for params in bad_params:
-            with self.assertRaises(tornado.httpclient.HTTPError):
-                response = yield new_room(params)
-                self.assertEqual(response.code, 404)
+        for msg, params in bad_params.items():
+            with self.assertRaises(tornado.httpclient.HTTPError) as ex:
+                yield new_room(params)
+
+            self.assertEqual(ex.exception.code, 400, msg=msg)
 
         server.game_rooms['5'] = GameRoom(author=LOGIN)
-        with self.assertRaises(tornado.httpclient.HTTPError):
-            response = yield new_room({
+        with self.assertRaises(tornado.httpclient.HTTPError) as ex:
+            yield new_room({
                 'title': 'rooms limit reached'
             })
-            self.assertEqual(response.code, 404)
 
+        self.assertEqual(ex.exception.code, 400)
+
+    @unittest.mock.patch(
+        'tornado.locks.Event.is_set',
+        return_value=False
+    )
     @unittest.mock.patch(
         'server.game_rooms', {
             ID: GameRoom(
                 _id=ID,
                 author=LOGIN,
+                allow_multi=True,
+                max_players=2,
             )
         }
     )
@@ -168,33 +174,41 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test(timeout=2000000)
-    def test_join_and_play(self, get_user):
-        join_result, start_result = yield [
+    @tornado.testing.gen_test()
+    def test_join_and_play(self, get_user, player_ready):
+        active_players = ['player1', 'player2']
+
+        join1, join2 = yield [
             self.client.fetch(
                 self.get_url('/games/{}/board?token={}&alias={}'.format(
-                    ID, TOKEN, 'tester'
+                    ID, TOKEN, player
                 )),
                 method='GET'
-            ),
-            self.client.fetch(
-                self.get_url('/games/{}'.format(ID)),
-                method='POST',
-                body=json.dumps({'token': TOKEN})
-            )
+            ) for player in active_players
         ]
 
-        self.assertEqual(join_result.code, 200)
-        self.assertEqual(start_result.code, 200)
+        self.assertEqual(join1.code, 200)
+        self.assertEqual(join2.code, 200)
 
-        with self.assertRaises(tornado.httpclient.HTTPError):
-            join_again = yield self.client.fetch(
+        board = (yield self.client.fetch(
+            self.get_url('/games/{}?token={}'.format(
+                ID, TOKEN
+            )),
+            method='GET',
+        )).body.decode()
+
+        self.assertTrue("id: '{}{}'".format(ID, 'player1') in board)
+        self.assertTrue("id: '{}{}'".format(ID, 'player2') in board)
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as ex:
+            # try to join after start
+            yield self.client.fetch(
                 self.get_url('/games/{}/board?token={}'.format(ID, TOKEN)),
                 method='GET',
             )
-            self.assertEqual(join_again.code, 404)
+        self.assertEqual(ex.exception.code, 403)
 
-        game = json.loads(join_result.body.decode())
+        player_board = json.loads(join1.body.decode())
         expected_game = {
             'score': 0,
             'moves': 5,
@@ -202,32 +216,43 @@ class UserTestCase(GrotTestCase):
         }
 
         for key, value in expected_game.items():
-            self.assertTrue(key in game)
-            self.assertEqual(game[key], value)
+            self.assertTrue(key in player_board)
+            self.assertEqual(player_board[key], value)
 
-        move = yield self.client.fetch(
-            self.get_url('/games/{}/board'.format(ID)),
-            method='POST',
-            body=json.dumps({'x': 3, 'y': 1, 'token': TOKEN}),
-        )
-        move_result = json.loads(move.body.decode())
-        self.assertTrue('score' in move_result)
+        scores = {}
+        while len(active_players) > 0:
+            for player in active_players:
+                move = yield self.client.fetch(
+                    self.get_url('/games/{}/board?alias={}&token={}'.format(
+                        ID, player, TOKEN
+                    )),
+                    method='POST',
+                    body=json.dumps({
+                        'x': randrange(1, 5),
+                        'y': randrange(1, 5),
+                    }),
+                )
+
+                move = json.loads(move.body.decode())
+
+                if move['moves'] == 0:
+                    active_players.remove(player)
+                    scores[player] = move['score']
 
         round_result = yield self.client.fetch(
             self.get_url('/games/{}'.format(ID)),
             method='GET',
-            headers={
-                'Accept': 'html'
-            }
+            headers={'Accept': 'html'}
         )
         self.assertTrue(round_result.code, 200)
 
         round_result_page = round_result.body.decode()
 
-        self.assertTrue("id: '{}'".format(ID) in round_result_page)
-        self.assertTrue(
-            "score: '{}'".format(move_result['score']) in round_result_page
-        )
+        for player, score in scores.items():
+            self.assertTrue("id: '{}{}'".format(
+                ID, player
+            ) in round_result_page)
+            self.assertTrue("score: '{}'".format(score) in round_result_page)
 
         deleted = yield self.client.fetch(
             self.get_url('/games/{}?token={}'.format(ID, TOKEN)),
@@ -244,7 +269,7 @@ class UserTestCase(GrotTestCase):
             )
         }
     )
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test()
     def test_games_list(self):
         result = yield self.client.fetch(
             self.get_url('/games'),
@@ -258,7 +283,7 @@ class UserTestCase(GrotTestCase):
         expected = '<a href="/games/{}">'.format(ID)
         self.assertTrue(expected in body_str)
 
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test()
     def test_wrong_game(self):
         with self.assertRaises(tornado.httpclient.HTTPError):
             response = yield self.client.fetch(
@@ -267,23 +292,22 @@ class UserTestCase(GrotTestCase):
             )
             self.assertEqual(response.code, 404)
 
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test()
     def test_oauth_login(self):
         index_page = yield self.client.fetch(
             self.get_url('/gh-oauth'),
             method='GET',
         )
-        root = fromstring(index_page.body.decode())
-        auth_url = root.xpath('//a')[0].attrib['href']
 
-        qs = parse_qs(urlparse(auth_url).query)
-        self.assertTrue('client_id' in qs)
-        self.assertEqual(settings.GH_OAUTH_CLIENT_ID, qs['client_id'][0])
+        index_html = index_page.body.decode().replace('&scope=user:email', '')
+        root = fromstring(index_html)
+        auth_url = root.find(".//a").attrib['href']
 
-        login_form = yield self.client.fetch(auth_url, method='GET')
+        expected = "https://github.com/login/oauth/authorize?client_id={}".format(
+            settings.GH_OAUTH_CLIENT_ID
+        )
 
-        expected_url = 'https://github.com/login?return_to='
-        self.assertEqual(login_form.effective_url[:35], expected_url)
+        self.assertEqual(expected, auth_url)
 
     @unittest.mock.patch(
         'server.User.collection.save',
@@ -307,7 +331,7 @@ class UserTestCase(GrotTestCase):
         'server.OAuth.access_token',
         return_value='1234567890'
     )
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test()
     def test_oauth_first_login(self, access_token, set_access_token, get_user_data, find_user, save_user):
         yield self.client.fetch(
             self.get_url('/gh-oauth?code=test'),

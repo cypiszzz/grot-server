@@ -13,6 +13,7 @@ from result import Result
 from grotlogic.board import Board
 from grotlogic.game import Game
 
+
 class RoomIsFullException(Exception):
     pass
 
@@ -243,9 +244,12 @@ class GameRoom(object):
 
     def start(self):
         if not self.started:
-            self.cancel_timeout('_auto_start')
-            self._new_round()
-            self.on_change.notify_all()
+            if len(self._players) <= 1:
+                self.setup_timeout('_auto_start')
+            else:
+                self.cancel_timeout('_auto_start')
+                self._new_round()
+                self.on_change.notify_all()
 
     def _new_round(self):
         self.update_timestamp()
