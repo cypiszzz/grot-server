@@ -42,10 +42,14 @@ def room_owner(handler):
     """
     @user
     def wrapper(self, game_room, *args, **kwargs):
-        if game_room.author != self.current_user.login:
-            raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
+        is_allowed = (
+            game_room.author == self.current_user.login or
+            self.current_user.admin
+        )
+        if is_allowed:
+            return handler(self, game_room, *args, **kwargs)
 
-        return handler(self, game_room, *args, **kwargs)
+        raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
 
     return wrapper
 
