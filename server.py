@@ -11,6 +11,7 @@ import tornado.web
 import settings
 from game_room import GameRoom, DevGameRoom, RoomIsFullException
 from user import User
+from result import Result
 from oauth import OAuth
 
 log = logging.getLogger('grot-server')
@@ -419,6 +420,23 @@ class GamePlayerHandler(BaseHandler):
                 yield game_room.on_progress.wait()
 
 
+class HallOfFameHandler(BaseHandler):
+
+    @tornado.gen.coroutine
+    def get(self, board_size='5'):
+        """
+        Players best results list
+        """
+        board_size = int(board_size)
+        results = yield Result.get_best(board_size)
+        if 'html' in self.request.headers.get('Accept', 'html'):
+            return self.render(
+                'templates/hall_of_fame.html',
+                results=results,
+                board_size=board_size,
+            )
+
+
 application = tornado.web.Application(
     [
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static'}),
@@ -429,6 +447,8 @@ application = tornado.web.Application(
         (r'/games/([0-9a-f]{24})/board', GameBoardHandler),
         (r'/games/([0-9a-f]{24})/players/?', GamePlayersHandler),
         (r'/games/([0-9a-f]{24})/players/(\w+)', GamePlayerHandler),
+        (r'/hall-of-fame', HallOfFameHandler),
+        (r'/hall-of-fame/(\d+)', HallOfFameHandler),
     ],
     debug=settings.DEBUG,
     cookie_secret=settings.COOKIE_SECRET,

@@ -1,0 +1,36 @@
+{% extends '__base.html' %}
+
+{% block content %}
+    <div id="hall-of-fame">
+        <h2>Hall of fame</h2>
+
+        <h4>Board size</h4>
+        <ul class="menu">
+            {% for bs in range(4, 9) %}
+                {% if bs == board_size %}
+                    <li>{{ bs }}</li>
+                {% else %}
+                    <li><a href="/hall-of-fame/{{ bs }}">{{ bs }}</a></li>
+                {% end %}
+            {% end %}
+        </ul>
+        <table>
+            <tr>
+                <th>Login</th>
+                <th>Score</th>
+            </tr>
+            {% if results %}
+                {% for item in results %}
+                    <tr>
+                        <td>{{ item['_id'] }}</td>
+                        <td>{{ item['score'] }}</td>
+                    </tr>
+                {% end %}
+            {% else %}
+                <tr>
+                    <td colspan="2">no results</td>
+                </tr>
+            {% end %}
+        </table>
+    </div>
+{% end %}

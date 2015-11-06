@@ -60,3 +60,4 @@ target/
 # Other
 .idea
 .c9
+local_settings.py
