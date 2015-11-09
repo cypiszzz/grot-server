@@ -2,19 +2,17 @@ import functools
 import http.client
 import json
 import logging
-import re
 
 import tornado.escape
 import tornado.gen
 import tornado.ioloop
 import tornado.web
-from tornado.httpclient import AsyncHTTPClient
 
 import settings
 from game_room import GameRoom, DevGameRoom, RoomIsFullException
 from user import User
 from result import Result
-
+from oauth import OAuth
 
 log = logging.getLogger('grot-server')
 
@@ -117,37 +115,21 @@ class OAuthHandler(BaseHandler):
     def get(self):
         gh_code = self.get_query_argument('code', None)
         if not gh_code:
-            self.redirect('/')
+            return self.redirect('/')
 
-        pay_load = {
-            'client_id': settings.GH_OAUTH_CLIENT_ID,
-            'client_secret': settings.GH_OAUTH_CLIENT_SECRET,
-            'code': gh_code,
-        }
-        http_client = AsyncHTTPClient()
-        resp = yield http_client.fetch(
-            'https://github.com/login/oauth/access_token',
-            method='POST',
-            body=json.dumps(pay_load),
-            headers={
-                'content-type': 'application/json',
-                'Accept': 'application/json',
-            }
-        )
-        access_token = json.loads(resp.body.decode('utf8')).get('access_token', None)
-        if not access_token:
-            self.redirect('/')
+        gh_oauth = OAuth(gh_code)
+        yield gh_oauth.set_access_token()
 
-        resp = yield http_client.fetch(
-            'https://api.github.com/user?access_token=' + access_token,
-            user_agent='GROT server'
-        )
-        user_data = json.loads(resp.body.decode('utf8'))
+        if not gh_oauth.access_token:
+            return self.redirect('/')
+
+        user_data = yield gh_oauth.get_user_data()
 
         login = user_data['login']
         user = yield User.get(login=login)
+
         if not user:
-            user = User(login, data=user_data, gh_token=access_token)
+            user = User(login, data=user_data, gh_token=gh_oauth.access_token)
             yield user.put()
 
         self.set_secure_cookie('token', user.token)
@@ -155,6 +137,7 @@ class OAuthHandler(BaseHandler):
 
 
 class GamesHandler(BaseHandler):
+
     def get(self):
         """
         List of game rooms.
