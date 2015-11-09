@@ -292,6 +292,7 @@ class GameHandler(BaseHandler):
         if not game_room.started:
             game_room.start()
 
+    @tornado.gen.coroutine
     @game_room
     @room_owner
     def delete(self, game_room):
@@ -299,7 +300,7 @@ class GameHandler(BaseHandler):
         Remove game room.
         """
         room_id = game_room.room_id
-        game_room.remove()
+        yield game_room.remove()
         del game_rooms[room_id]
 
 

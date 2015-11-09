@@ -130,6 +130,7 @@ class GameRoom(object):
 
         self._id = yield GameRoom.collection.save(data)
 
+    @tornado.gen.coroutine
     def remove(self):
         if self._id is not None:
             yield GameRoom.collection.remove({'_id': self._id})
