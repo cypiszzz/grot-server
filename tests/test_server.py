@@ -42,7 +42,7 @@ class UserTestCase(GrotTestCase):
 
     @unittest.mock.patch(
         'server.GameRoom.collection.remove',
-        return_value=None
+        return_value=future_wrap(None)
     )
     @unittest.mock.patch(
         'server.GameRoom.collection.save',
@@ -57,7 +57,7 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test(timeout=100000)
+    @tornado.testing.gen_test(timeout=60)
     def test_new_game_room(self, user_get, save_method, remove_method):
         data = {
             'title': 'Test game_room',
@@ -174,8 +174,12 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test()
-    def test_join_and_play(self, get_user, player_ready):
+    @unittest.mock.patch(
+        'server.GameRoom.collection.remove',
+        return_value=future_wrap(None)
+    )
+    @tornado.testing.gen_test(timeout=60)
+    def test_join_and_play(self, *args):
         active_players = ['player1', 'player2']
 
         join1, join2 = yield [
