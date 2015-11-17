@@ -57,7 +57,7 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test(timeout=60)
+    @tornado.testing.gen_test
     def test_new_game_room(self, user_get, save_method, remove_method):
         data = {
             'title': 'Test game_room',
@@ -115,7 +115,7 @@ class UserTestCase(GrotTestCase):
             'name': 'STXNext',
         })
     )
-    @tornado.testing.gen_test()
+    @tornado.testing.gen_test
     def test_new_game_exceptions(self, user_get):
 
         def new_room(body):
@@ -178,7 +178,7 @@ class UserTestCase(GrotTestCase):
         'server.GameRoom.collection.remove',
         return_value=future_wrap(None)
     )
-    @tornado.testing.gen_test(timeout=60)
+    @tornado.testing.gen_test
     def test_join_and_play(self, *args):
         active_players = ['player1', 'player2']
 
@@ -273,7 +273,7 @@ class UserTestCase(GrotTestCase):
             )
         }
     )
-    @tornado.testing.gen_test()
+    @tornado.testing.gen_test
     def test_games_list(self):
         result = yield self.client.fetch(
             self.get_url('/games'),
@@ -287,7 +287,7 @@ class UserTestCase(GrotTestCase):
         expected = '<a href="/games/{}">'.format(ID)
         self.assertTrue(expected in body_str)
 
-    @tornado.testing.gen_test()
+    @tornado.testing.gen_test
     def test_wrong_game(self):
         with self.assertRaises(tornado.httpclient.HTTPError):
             response = yield self.client.fetch(
@@ -296,7 +296,7 @@ class UserTestCase(GrotTestCase):
             )
             self.assertEqual(response.code, 404)
 
-    @tornado.testing.gen_test()
+    @tornado.testing.gen_test
     def test_oauth_login(self):
         index_page = yield self.client.fetch(
             self.get_url('/gh-oauth'),
@@ -335,7 +335,7 @@ class UserTestCase(GrotTestCase):
         'server.OAuth.access_token',
         return_value='1234567890'
     )
-    @tornado.testing.gen_test()
+    @tornado.testing.gen_test
     def test_oauth_first_login(self, access_token, set_access_token, get_user_data, find_user, save_user):
         yield self.client.fetch(
             self.get_url('/gh-oauth?code=test'),
