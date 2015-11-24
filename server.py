@@ -2,6 +2,7 @@ import functools
 import http.client
 import json
 import logging
+import math
 
 import tornado.escape
 import tornado.gen
@@ -138,15 +139,24 @@ class OAuthHandler(BaseHandler):
 
 
 class GamesHandler(BaseHandler):
+    page_size = 20
 
     def get(self):
         """
         List of game rooms.
         """
         if 'html' in self.request.headers.get('Accept', 'html'):
+            try:
+                current_page = int(self.get_query_argument('page', '1'))
+            except ValueError:
+                current_page = 1
             return self.render(
                 'templates/games.html',
-                rooms=sorted(game_rooms.values())
+                rooms=sorted(game_rooms.values())[
+                    (current_page-1)*self.page_size:current_page*self.page_size
+                ],
+                total_pages=math.ceil(len(game_rooms)/self.page_size),
+                current_page=current_page,
             )
 
         self.write({

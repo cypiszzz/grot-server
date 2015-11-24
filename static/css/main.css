@@ -24,6 +24,14 @@ ol ul {
     margin: 16px 0px;
 }
 
+a {
+    color: #262626;
+}
+
+a:hover {
+    color: #299C94;
+}
+
 .top {
     padding-top: 20px;
     padding-bottom: 20px;
@@ -40,9 +48,12 @@ ol ul {
 .top h1 {
     font-weight: 300;
     font-size: 100px;
-    color: #FFF;
     line-height: 90px;
     margin: 0px;
+}
+.top h1 a {
+    color: #FFF;
+    text-decoration: none;
 }
 #by_stxnext {
     width: 100px;
@@ -247,11 +258,20 @@ ol ul {
     font-size: large;
 }
 
-#hall-of-fame ul {
+#hall-of-fame ul, .pagination ul {
     list-style-type: none;
     padding: 8px;
 }
 
-#hall-of-fame ul, #hall-of-fame li, #hall-of-fame h4 {
+#hall-of-fame ul, #hall-of-fame li, #hall-of-fame h4,
+.pagination ul, .pagination li {
     display: inline;
+}
+
+.pagination a {
+    text-decoration: none;
+}
+
+.pagination-centered {
+    text-align: center;
 }
