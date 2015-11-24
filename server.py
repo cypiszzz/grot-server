@@ -6,6 +6,7 @@ import logging
 import tornado.escape
 import tornado.gen
 import tornado.ioloop
+import tornado.options
 import tornado.web
 
 import settings
@@ -461,6 +462,7 @@ application = tornado.web.Application(
 )
 
 if __name__ == '__main__':
+    tornado.options.parse_command_line()
     log.warn('Starting server http://127.0.0.1:8080')
     application.listen(8080)
     tornado.ioloop.IOLoop.instance().add_future(
