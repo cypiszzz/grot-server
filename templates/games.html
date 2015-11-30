@@ -8,4 +8,16 @@
         <li><a href="/games/{{ game_room.room_id }}">{{ game_room.title }}</a> by {{ game_room.author }}</li>
     {% end %}
     </ul>
+
+    {% if total_pages > 1 %}
+    <div class="pagination pagination-centered">
+        <ul>
+            <li{% if current_page != 1 %}><a href="/games?page={{ current_page-1 }}">&laquo;</a>{% else %} class="disabled"><span>&laquo;</span></li>{% end %}
+            {% for page_num in range(1, total_pages + 1) %}{# 1-index range #}
+            <li{% if page_num != current_page %}><a href="/games?page={{ page_num }}">{{ page_num }}</a>{% else %} class="active"><span>{{ page_num }}</span></li>{% end %}
+            {% end %}
+            <li{% if current_page != total_pages %}><a href="/games?page={{ current_page+1 }}">&raquo;</a>{% else %} class="disabled"><span>&raquo;</span></li>{% end %}
+        </ul>
+    </div>
+    {% end %}
 {% end %}
