@@ -24,7 +24,7 @@ class Result(object):
     @classmethod
     @tornado.gen.coroutine
     def get_best(cls, board_size):
-        cursor = yield Result.collection.aggregate(
+        cursor = Result.collection.aggregate(
             [
                 {'$match': {'board_size': board_size}},
                 {

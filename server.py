@@ -160,7 +160,7 @@ class GamesHandler(BaseHandler):
             )
 
         self.write({
-            'games': game_rooms.keys()
+            'games': list(game_rooms.keys())
         })
 
     @tornado.gen.coroutine
