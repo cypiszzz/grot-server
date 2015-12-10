@@ -299,15 +299,15 @@ class UserTestCase(GrotTestCase):
     @tornado.testing.gen_test
     def test_oauth_login(self):
         index_page = yield self.client.fetch(
-            self.get_url('/gh-oauth'),
+            self.get_url('/'),
             method='GET',
         )
 
-        index_html = index_page.body.decode().replace('&scope=user:email', '')
+        index_html = index_page.body.decode().replace('&', '&amp;')
         root = fromstring(index_html)
-        auth_url = root.find(".//a").attrib['href']
+        auth_url = root.findall(".//a")[-1].attrib['href']
 
-        expected = "https://github.com/login/oauth/authorize?client_id={}".format(
+        expected = "https://github.com/login/oauth/authorize?client_id={}&scope=user:email".format(
             settings.GH_OAUTH_CLIENT_ID
         )
 
