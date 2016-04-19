@@ -272,6 +272,10 @@ a:hover {
     text-decoration: none;
 }
 
+.pagination li.active {
+    font-weight: bold;
+}
+
 .pagination-centered {
     text-align: center;
 }
