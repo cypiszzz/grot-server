@@ -170,6 +170,9 @@ a:hover {
     font-weight: bold;
 }
 
+#game-results.score-board ul li {
+    position: relative;
+}
 /* //.score-board */
 
 
@@ -270,6 +273,10 @@ a:hover {
 
 .pagination a {
     text-decoration: none;
+}
+
+.pagination li.active {
+    font-weight: bold;
 }
 
 .pagination-centered {
