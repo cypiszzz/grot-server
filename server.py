@@ -401,6 +401,29 @@ class GamePlayersHandler(BaseHandler):
             yield game_room.on_change.wait()
 
 
+class GameResultsHandler(BaseHandler):
+    """
+    Final results of a game.
+    """
+
+    @tornado.gen.coroutine
+    @game_room
+    def get(self, game_room):
+        """
+        Wait for game end and return results.
+        """
+        if not game_room.ended:
+            yield game_room.on_end.wait()
+
+        if 'html' in self.request.headers.get('Accept', 'html'):
+            self.render('templates/results.html', game_room=game_room)
+            return
+
+        self.write({
+            'players': game_room.get_results(),
+        })
+
+
 class GamePlayerHandler(BaseHandler):
     """
     Players board status.
@@ -463,6 +486,7 @@ application = tornado.web.Application(
         (r'/games/([0-9a-f]{24})/board', GameBoardHandler),
         (r'/games/([0-9a-f]{24})/players/?', GamePlayersHandler),
         (r'/games/([0-9a-f]{24})/players/(\w+)', GamePlayerHandler),
+        (r'/games/([0-9a-f]{24})/results/?', GameResultsHandler),
         (r'/hall-of-fame', HallOfFameHandler),
         (r'/hall-of-fame/(\d+)', HallOfFameHandler),
     ],

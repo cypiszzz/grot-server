@@ -1,0 +1,27 @@
+{% extends '__base.html' %}
+
+{% block content %}
+<div class="score-board" id="game-results">
+    <p>
+        {{ game_room.title }}
+        ({{ game_room.room_id }})
+    <ul class="clearfix">
+        <li class="head clearfix">
+            <div class="avatar">&nbsp;</div>
+            <div class="position">&nbsp;</div>
+            <div class="name">Player</div>
+            <div class="score">Score</div>
+        </li>
+        {% for pos, player in enumerate(game_room.get_results()) %}
+        <li id="player_{{ player['id'] }}">
+            <div class="avatar"><img src="http://robohash.org/{{ player['name'] }}"></div>
+            <div class="position">{{ pos + 1 }}</div>
+            <div class="name">{{ player['name'] }}</div>
+            <div class="score">{{ player['score'] }}</div>
+        </li>
+        {% end %}
+    </ul>
+    <div class="clearfix">&nbsp;</div>
+</div>
+
+{% end %}
