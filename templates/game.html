@@ -22,7 +22,7 @@
         <li class="head clearfix">
             <div class="avatar">&nbsp;</div>
             <div class="position">&nbsp;</div>
-            <div class="name">Player</div>
+            <div class="login">Player</div>
             <div class="moves">Moves</div>
             <div class="score">Score</div>
         </li>
@@ -43,7 +43,7 @@
         {% for player in game_room.players %}
         new Player({
             id: '{{ player.get_id() }}',
-            name: '{{ player.get_name() }}',
+            login: '{{ player.get_login() }}',
             score: '{{ player.score }}',
             moves: '{{ player.moves }}',
         }),

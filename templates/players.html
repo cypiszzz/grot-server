@@ -21,14 +21,14 @@
     });
 
     game.players.on('add', function(model, collection, options) {
-        $('select').append($('<option>').val(model.id).text(model.get("name")));
+        $('select').append($('<option>').val(model.id).text(model.get("login")));
     });
 
     {% for player in game_room.players %}
     game.players.add([
         new Player({
             id: '{{ player.get_id() }}',
-            name: '{{ player.get_name() }}',
+            login: '{{ player.get_login() }}',
         }),
     ]);
     {% end %}

@@ -9,14 +9,14 @@
         <li class="head clearfix">
             <div class="avatar">&nbsp;</div>
             <div class="position">&nbsp;</div>
-            <div class="name">Player</div>
+            <div class="login">Player</div>
             <div class="score">Score</div>
         </li>
         {% for pos, player in enumerate(game_room.get_results()) %}
         <li id="player_{{ player['id'] }}">
-            <div class="avatar"><img src="http://robohash.org/{{ player['name'] }}"></div>
+            <div class="avatar"><img src="http://robohash.org/{{ player['login'] }}"></div>
             <div class="position">{{ pos + 1 }}</div>
-            <div class="name">{{ player['name'] }}</div>
+            <div class="login">{{ player['login'] }}</div>
             <div class="score">{{ player['score'] }}</div>
         </li>
         {% end %}

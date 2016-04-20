@@ -67,11 +67,11 @@ class GameRoom(object):
                 player_id += self.alias
             return player_id
 
-        def get_name(self):
-            player_name = str(self.user.name)
+        def get_login(self):
+            player_login = str(self.user.login)
             if self.alias:
-                player_name = '{} ({})'.format(player_name, self.alias)
-            return player_name
+                player_login = '{} ({})'.format(player_login, self.alias)
+            return player_login
 
     def __init__(self, board_size=5, title=None, max_players=15,
                  auto_start=5, auto_restart=5, with_bot=False,
@@ -307,7 +307,7 @@ class GameRoom(object):
         return [
             {
                 'id': player.get_id(),
-                'name': player.get_name(),
+                'login': player.get_login(),
                 'score': player.score,
                 'moves': player.moves,
             }
@@ -318,10 +318,10 @@ class GameRoom(object):
     def submit_result(self):
         for result in self.get_results():
             if result['score'] > settings.MIN_HOF_SCORE:
-                lowest = yield Result.get_last(result['name'], self.board_size)
+                lowest = yield Result.get_last(result['login'], self.board_size)
                 if lowest is None or lowest.score < result['score']:
                     result = Result(
-                        login=result['name'],
+                        login=result['login'],
                         score=result['score'],
                         board_size=self.board_size,
                     )

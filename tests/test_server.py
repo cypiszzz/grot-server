@@ -54,7 +54,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @tornado.testing.gen_test
@@ -112,7 +111,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @tornado.testing.gen_test
@@ -171,7 +169,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @unittest.mock.patch(

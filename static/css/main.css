@@ -153,7 +153,7 @@ a:hover {
     margin-right: 10px;
     width: 10%;
 }
-.score-board ul li div.name {
+.score-board ul li div.login {
     width: 40%;
     overflow: hidden;
     text-align: left;
@@ -206,7 +206,7 @@ a:hover {
     font-weight: bold;
 }
 
-.userName {
+.userLogin {
     font-weight: bold;
     color: #454545;
 }
