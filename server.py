@@ -293,6 +293,9 @@ class GameHandler(BaseHandler):
         """
         Remove game room.
         """
+        if not game_room.ended:
+            yield game_room.on_end.wait()
+
         room_id = game_room.room_id
         yield game_room.remove()
         del game_rooms[room_id]
