@@ -1,3 +1,4 @@
+import logging
 import random
 import subprocess
 import time
@@ -12,6 +13,9 @@ import settings
 from result import Result
 from grotlogic.board import Board
 from grotlogic.game import Game
+
+
+log = logging.getLogger('grot-server')
 
 
 class RoomIsFullException(Exception):
@@ -73,6 +77,7 @@ class GameRoom(object):
                  auto_start=5, auto_restart=5, with_bot=False,
                  allow_multi=False, author=None, timestamp=None,
                  results=None, _id=None):
+        self._removed = False
         self._id = _id
         self.board_size = board_size
         self.title = title or 'Game room {:%Y%m%d%H%M%S}'.format(datetime.now())
@@ -129,12 +134,16 @@ class GameRoom(object):
         if saved:
             data['_id'] = self._id
 
-        self._id = yield GameRoom.collection.save(to_save=data)
+        if self._removed:
+            log.warn('Updating already removed game room is not allowed!')
+        else:
+            self._id = yield GameRoom.collection.save(to_save=data)
 
     @tornado.gen.coroutine
     def remove(self):
         if self._id is not None:
             yield GameRoom.collection.remove({'_id': self._id})
+        self._removed = True
 
     @property
     def room_id(self):
