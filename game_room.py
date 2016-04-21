@@ -319,10 +319,13 @@ class GameRoom(object):
     def submit_result(self):
         for result in self.get_results():
             if result['score'] > settings.MIN_HOF_SCORE:
-                lowest = yield Result.get_last(result['login'], self.board_size)
+                login = result['login']
+                if ' ' in login:
+                    login = login.split(' ')[0]
+                lowest = yield Result.get_last(login, self.board_size)
                 if lowest is None or lowest.score < result['score']:
                     result = Result(
-                        login=result['login'],
+                        login=login,
                         score=result['score'],
                         board_size=self.board_size,
                     )
