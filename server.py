@@ -255,7 +255,8 @@ class GameHandler(BaseHandler):
         Game results page.
         """
         if 'html' in self.request.headers.get('Accept', 'html'):
-            self.render('templates/game.html',
+            self.render(
+                'templates/game.html',
                 game_room=game_room,
                 user=self.current_user,
             )

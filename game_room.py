@@ -80,7 +80,7 @@ class GameRoom(object):
         self._removed = False
         self._id = _id
         self.board_size = board_size
-        self.title = title or 'Game room {:%Y%m%d%H%M%S}'.format(datetime.now())
+        self.title = title or 'Game {:%Y%m%d%H%M%S}'.format(datetime.now())
         self.max_players = max_players
         self.with_bot = with_bot
         self.allow_multi = allow_multi
