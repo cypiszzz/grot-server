@@ -21,13 +21,6 @@ class User(object):
         return self.login < other.login
 
     @property
-    def name(self):
-        if self.data and self.data.get('name'):
-            return self.data['name']
-        else:
-            return self.login
-
-    @property
     def admin(self):
         return self.login in settings.ADMINS
 

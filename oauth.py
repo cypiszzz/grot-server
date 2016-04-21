@@ -36,7 +36,9 @@ class OAuth(object):
             }
         )
 
-        self.access_token = json.loads(resp.body.decode('utf8')).get('access_token', None)
+        self.access_token = json.loads(
+            resp.body.decode('utf8')
+        ).get('access_token', None)
 
     @tornado.gen.coroutine
     def get_user_data(self):

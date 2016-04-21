@@ -54,7 +54,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @tornado.testing.gen_test
@@ -86,7 +85,8 @@ class UserTestCase(GrotTestCase):
             'max_players': 15,
             'results': None,
             'title': data['title'],
-            'with_bot': False
+            'with_bot': False,
+            'allow_multi': False,
         }
         self.assertDictEqual(expected, save_data)
         self.assertEqual(len(server.game_rooms), 1)
@@ -112,7 +112,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @tornado.testing.gen_test
@@ -171,7 +170,6 @@ class UserTestCase(GrotTestCase):
             '_id': ID,
             'login': LOGIN,
             'token': TOKEN,
-            'name': 'STXNext',
         })
     )
     @unittest.mock.patch(

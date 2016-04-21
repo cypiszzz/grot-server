@@ -139,9 +139,9 @@ _.extend(Players.prototype, Synchronize);
 var ScoreBoard = Backbone.View.extend({
   template: _.template(
     '<li id="player_<%- player.id %>">' +
-    '<div class="avatar"><img src="http://robohash.org/<%- player.name %>"></img></div>' +
+    '<div class="avatar"><img src="http://robohash.org/<%- player.login %>"></img></div>' +
     '<div class="position">-</div>' +
-    '<div class="name"><%- player.name %></div>' +
+    '<div class="login"><%- player.login %></div>' +
     '<div class="moves"><%- player.moves %></div>' +
     '<div class="score"><%- player.score %></div>' +
     '</li>'
@@ -202,7 +202,7 @@ var ScoreBoard = Backbone.View.extend({
         this.$el.find('ul').append($playerEntry);
       }
 
-      $playerEntry.find('.name').html(player.name);
+      $playerEntry.find('.login').html(player.login);
       $playerEntry.find('.moves').html(player.moves);
       $playerEntry.find('.score').html(player.score);
       $playerEntry.find('.position').html(i + 1);

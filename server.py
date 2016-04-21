@@ -255,7 +255,8 @@ class GameHandler(BaseHandler):
         Game results page.
         """
         if 'html' in self.request.headers.get('Accept', 'html'):
-            self.render('templates/game.html',
+            self.render(
+                'templates/game.html',
                 game_room=game_room,
                 user=self.current_user,
             )
@@ -293,7 +294,7 @@ class GameHandler(BaseHandler):
         """
         Remove game room.
         """
-        if not game_room.ended:
+        if any(game_room.players_active) and not game_room.ended:
             yield game_room.on_end.wait()
 
         room_id = game_room.room_id
