@@ -126,6 +126,7 @@ class GameRoom(object):
             'auto_start': self._delays['_auto_start'],
             'auto_restart': self._delays['_auto_restart'],
             'with_bot': self.with_bot,
+            'allow_multi': self.allow_multi,
             'author': self.author,
             'timestamp': self.timestamp,
             'results': self.results,
