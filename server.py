@@ -293,7 +293,7 @@ class GameHandler(BaseHandler):
         """
         Remove game room.
         """
-        if not game_room.ended:
+        if any(game_room.players_active) and not game_room.ended:
             yield game_room.on_end.wait()
 
         room_id = game_room.room_id
