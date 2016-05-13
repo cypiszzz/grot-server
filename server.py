@@ -318,7 +318,7 @@ class GameBoardHandler(BaseHandler):
         Join the game, wait for start. Returns first board state.
         """
         alias = self.get_query_argument('alias', '')
-        if game_room.started:
+        if game_room.started and not isinstance(game_room, DevGameRoom):
             raise tornado.web.HTTPError(http.client.FORBIDDEN.value)
         try:
             player = game_room.add_player(self.current_user, alias)
