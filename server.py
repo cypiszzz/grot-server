@@ -294,6 +294,9 @@ class GameHandler(BaseHandler):
         """
         Remove game room.
         """
+        self.write({'status': 'OK'})
+        self.finish()
+
         if any(game_room.players_active) and not game_room.ended:
             yield game_room.on_end.wait()
 
